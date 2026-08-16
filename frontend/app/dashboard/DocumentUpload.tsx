@@ -40,22 +40,49 @@ export default function DocumentUpload() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("documents").insert({
-      user_id: user.id,
-      filename: file.name,
-      storage_path: storagePath,
-      file_type: file.type || "unknown",
-      status: "uploaded",
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("documents")
+      .insert({
+        user_id: user.id,
+        filename: file.name,
+        storage_path: storagePath,
+        file_type: file.type || "unknown",
+        status: "uploaded",
+      })
+      .select("id")
+      .single();
 
-    setUploading(false);
-    if (insertError) {
-      setError(insertError.message);
+    if (insertError || !inserted) {
+      setError(insertError?.message ?? "Could not save document record.");
+      setUploading(false);
       return;
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
     router.refresh();
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+      fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/${inserted.id}/process`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
+      )
+        .catch(() => {
+          // Non-fatal: the document stays visible with status "uploaded"
+          // and can be retried; the dashboard will simply keep polling.
+        })
+        .finally(() => {
+          router.refresh();
+        });
+    }
+
+    setUploading(false);
   }
 
   return (

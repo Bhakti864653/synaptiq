@@ -22,4 +22,5 @@ def health():
     return {
         "status": "ok",
         "supabase_url_configured": bool(os.getenv("SUPABASE_URL")),
+        "supabase_key_configured": bool(os.getenv("SUPABASE_PUBLISHABLE_KEY")),
     }

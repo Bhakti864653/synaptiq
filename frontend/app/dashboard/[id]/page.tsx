@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ExamPlan from "./ExamPlan";
+import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
 import TutorChat from "./TutorChat";
 
@@ -76,6 +77,10 @@ export default async function DocumentPage({
 
       {document.status === "quiz_ready" && (
         <ExamPlan documentId={document.id} />
+      )}
+
+      {document.status === "quiz_ready" && (
+        <Flashcards documentId={document.id} />
       )}
     </main>
   );

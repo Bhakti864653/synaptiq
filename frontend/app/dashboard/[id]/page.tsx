@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import QuizView from "./QuizView";
+import TutorChat from "./TutorChat";
 
 export default async function DocumentPage({
   params,
@@ -67,6 +68,10 @@ export default async function DocumentPage({
         questions={questions ?? []}
         mastery={mastery ?? []}
       />
+
+      {(document.status === "processed" || document.status === "quiz_ready") && (
+        <TutorChat documentId={document.id} />
+      )}
     </main>
   );
 }

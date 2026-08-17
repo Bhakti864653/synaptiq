@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .documents import router as documents_router
 from .quiz import router as quiz_router
+from .tutor import router as tutor_router
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
@@ -21,6 +22,7 @@ app.add_middleware(
 
 app.include_router(documents_router)
 app.include_router(quiz_router)
+app.include_router(tutor_router)
 
 
 @app.get("/health")

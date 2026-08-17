@@ -278,6 +278,7 @@ def submit_quiz(
     admin = get_admin_client()
 
     affected_concepts: set[str] = set()
+    results = []
 
     for answer in answers:
         question = (
@@ -304,6 +305,13 @@ def submit_quiz(
         ).execute()
 
         affected_concepts.add(question["concept_id"])
+        results.append(
+            {
+                "question_id": question["id"],
+                "is_correct": is_correct,
+                "correct_index": question["correct_index"],
+            }
+        )
 
     mastery_updates = []
     for concept_id in affected_concepts:
@@ -328,4 +336,4 @@ def submit_quiz(
 
         mastery_updates.append({"concept_id": concept_id, "mastery_score": score})
 
-    return {"mastery_updates": mastery_updates}
+    return {"mastery_updates": mastery_updates, "results": results}

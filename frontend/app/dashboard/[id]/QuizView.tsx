@@ -13,6 +13,7 @@ type Question = {
   options: string[];
 };
 type Mastery = { concept_id: string; mastery_score: number };
+type Result = { is_correct: boolean; correct_index: number };
 
 async function authFetch(path: string, options: RequestInit = {}) {
   const supabase = createClient();
@@ -54,6 +55,7 @@ export default function QuizView({
   );
   const [practicing, setPracticing] = useState(false);
   const [submittingPractice, setSubmittingPractice] = useState(false);
+  const [results, setResults] = useState<Record<string, Result>>({});
 
   async function handleGenerate() {
     setGenerating(true);
@@ -93,6 +95,15 @@ export default function QuizView({
       }
       const result = await res.json();
       setLatestMastery(result.mastery_updates);
+      setResults((prev) => {
+        const next = { ...prev };
+        for (const r of result.results as (Result & {
+          question_id: string;
+        })[]) {
+          next[r.question_id] = { is_correct: r.is_correct, correct_index: r.correct_index };
+        }
+        return next;
+      });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -152,7 +163,15 @@ export default function QuizView({
           mastery_score,
         }));
       });
-      setPracticeQuestions(null);
+      setResults((prev) => {
+        const next = { ...prev };
+        for (const r of result.results as (Result & {
+          question_id: string;
+        })[]) {
+          next[r.question_id] = { is_correct: r.is_correct, correct_index: r.correct_index };
+        }
+        return next;
+      });
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -201,24 +220,44 @@ export default function QuizView({
       {status === "quiz_ready" && questions.length > 0 && (
         <div className="flex flex-col gap-6">
           <h2 className="font-semibold">Diagnostic quiz</h2>
-          {questions.map((q) => (
-            <div key={q.id} className="flex flex-col gap-2">
-              <p>{q.question_text}</p>
-              {q.options.map((option, i) => (
-                <label key={i} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={q.id}
-                    checked={answers[q.id] === i}
-                    onChange={() =>
-                      setAnswers((prev) => ({ ...prev, [q.id]: i }))
-                    }
-                  />
-                  {option}
-                </label>
-              ))}
-            </div>
-          ))}
+          {questions.map((q) => {
+            const result = results[q.id];
+            return (
+              <div key={q.id} className="flex flex-col gap-2">
+                <p>{q.question_text}</p>
+                {q.options.map((option, i) => (
+                  <label
+                    key={i}
+                    className={`flex items-center gap-2 ${
+                      result && i === result.correct_index
+                        ? "text-green-600 font-medium"
+                        : result && i === answers[q.id] && !result.is_correct
+                          ? "text-red-600"
+                          : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={q.id}
+                      checked={answers[q.id] === i}
+                      disabled={!!result}
+                      onChange={() =>
+                        setAnswers((prev) => ({ ...prev, [q.id]: i }))
+                      }
+                    />
+                    {option}
+                  </label>
+                ))}
+                {result && (
+                  <p
+                    className={`text-sm ${result.is_correct ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {result.is_correct ? "Correct" : "Incorrect"}
+                  </p>
+                )}
+              </div>
+            );
+          })}
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -249,31 +288,60 @@ export default function QuizView({
       {practiceQuestions && (
         <div className="flex flex-col gap-6">
           <h2 className="font-semibold">Practice session</h2>
-          {practiceQuestions.map((q) => (
-            <div key={q.id} className="flex flex-col gap-2">
-              <p>{q.question_text}</p>
-              {q.options.map((option, i) => (
-                <label key={i} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={q.id}
-                    checked={answers[q.id] === i}
-                    onChange={() =>
-                      setAnswers((prev) => ({ ...prev, [q.id]: i }))
-                    }
-                  />
-                  {option}
-                </label>
-              ))}
-            </div>
-          ))}
-          <button
-            onClick={handleSubmitPractice}
-            disabled={submittingPractice}
-            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
-          >
-            {submittingPractice ? "Submitting..." : "Submit answers"}
-          </button>
+          {practiceQuestions.map((q) => {
+            const result = results[q.id];
+            return (
+              <div key={q.id} className="flex flex-col gap-2">
+                <p>{q.question_text}</p>
+                {q.options.map((option, i) => (
+                  <label
+                    key={i}
+                    className={`flex items-center gap-2 ${
+                      result && i === result.correct_index
+                        ? "text-green-600 font-medium"
+                        : result && i === answers[q.id] && !result.is_correct
+                          ? "text-red-600"
+                          : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={q.id}
+                      checked={answers[q.id] === i}
+                      disabled={!!result}
+                      onChange={() =>
+                        setAnswers((prev) => ({ ...prev, [q.id]: i }))
+                      }
+                    />
+                    {option}
+                  </label>
+                ))}
+                {result && (
+                  <p
+                    className={`text-sm ${result.is_correct ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {result.is_correct ? "Correct" : "Incorrect"}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          {practiceQuestions.some((q) => !results[q.id]) ? (
+            <button
+              onClick={handleSubmitPractice}
+              disabled={submittingPractice}
+              className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
+            >
+              {submittingPractice ? "Submitting..." : "Submit answers"}
+            </button>
+          ) : (
+            <button
+              onClick={() => setPracticeQuestions(null)}
+              className="rounded bg-black px-3 py-2 text-white w-fit"
+            >
+              Done
+            </button>
+          )}
         </div>
       )}
 

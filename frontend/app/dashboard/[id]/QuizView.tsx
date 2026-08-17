@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import MasteryBar from "@/components/MasteryBar";
 
 type Concept = { id: string; name: string };
 type Question = {
@@ -178,12 +179,11 @@ export default function QuizView({
         <div className="flex flex-col gap-2">
           <h2 className="font-semibold">Concepts</h2>
           {concepts.map((c) => (
-            <div key={c.id} className="flex items-center justify-between">
-              <span>{c.name}</span>
-              <span className="text-sm text-gray-500">
-                {masteryByConcept.get(c.id) ?? 0}% mastery
-              </span>
-            </div>
+            <MasteryBar
+              key={c.id}
+              label={c.name}
+              score={masteryByConcept.get(c.id) ?? 0}
+            />
           ))}
         </div>
       )}

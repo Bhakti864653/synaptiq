@@ -1,0 +1,212 @@
+import json
+import os
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Header, HTTPException
+from groq import Groq
+from pydantic import BaseModel
+
+from .documents import get_user_id
+from .supabase_client import get_admin_client
+
+router = APIRouter()
+
+GROQ_MODEL = "llama-3.3-70b-versatile"
+MAX_CONTEXT_CHARS = 12000
+
+QUIZ_PROMPT = """You are an expert tutor creating a diagnostic quiz from a student's own study material.
+
+Read the material below and:
+1. Identify 3 to 6 distinct concepts covered in it (specific, not generic — e.g. "The Bohr Effect", not "Biology").
+2. For each concept, write exactly one multiple-choice question with 4 answer options that tests understanding of that concept, using only information from the material.
+
+Respond with ONLY valid JSON in this exact shape, no other text:
+{
+  "concepts": [
+    {
+      "name": "Concept name",
+      "question": "Question text",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correct_index": 0
+    }
+  ]
+}
+
+Study material:
+---
+%s
+---
+"""
+
+
+def get_groq_client() -> Groq:
+    return Groq(api_key=os.environ["GROQ_API_KEY"])
+
+
+def _get_owned_document(admin, document_id: str, user_id: str) -> dict:
+    result = (
+        admin.table("documents")
+        .select("*")
+        .eq("id", document_id)
+        .maybe_single()
+        .execute()
+    )
+    document = result.data if result else None
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if document["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Not your document")
+    return document
+
+
+@router.post("/documents/{document_id}/generate-quiz")
+def generate_quiz(
+    document_id: str, authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    document = _get_owned_document(admin, document_id, user_id)
+    if document["status"] not in ("processed", "quiz_ready"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document is not ready (status: {document['status']})",
+        )
+
+    chunks = (
+        admin.table("document_chunks")
+        .select("content")
+        .eq("document_id", document_id)
+        .order("chunk_index")
+        .execute()
+        .data
+        or []
+    )
+    if not chunks:
+        raise HTTPException(
+            status_code=400, detail="No processed text found for this document"
+        )
+
+    material = "\n\n".join(c["content"] for c in chunks)[:MAX_CONTEXT_CHARS]
+
+    client = get_groq_client()
+    try:
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": QUIZ_PROMPT % material}],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+        )
+        parsed = json.loads(completion.choices[0].message.content)
+        concepts_data = parsed["concepts"]
+        if not concepts_data:
+            raise ValueError("Model returned no concepts")
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Quiz generation failed: {exc}")
+
+    # Regenerating replaces any previous quiz for this document.
+    admin.table("concepts").delete().eq("document_id", document_id).execute()
+
+    created_count = 0
+    for item in concepts_data:
+        concept = (
+            admin.table("concepts")
+            .insert(
+                {
+                    "document_id": document_id,
+                    "user_id": user_id,
+                    "name": item["name"],
+                }
+            )
+            .execute()
+            .data[0]
+        )
+
+        admin.table("quiz_questions").insert(
+            {
+                "concept_id": concept["id"],
+                "document_id": document_id,
+                "user_id": user_id,
+                "question_text": item["question"],
+                "options": item["options"],
+                "correct_index": item["correct_index"],
+            }
+        ).execute()
+
+        admin.table("concept_mastery").insert(
+            {"concept_id": concept["id"], "user_id": user_id, "mastery_score": 0}
+        ).execute()
+
+        created_count += 1
+
+    admin.table("documents").update({"status": "quiz_ready"}).eq(
+        "id", document_id
+    ).execute()
+
+    return {"status": "quiz_ready", "concept_count": created_count}
+
+
+class QuizAnswer(BaseModel):
+    question_id: str
+    selected_index: int
+
+
+@router.post("/quiz/submit")
+def submit_quiz(
+    answers: list[QuizAnswer], authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    affected_concepts: set[str] = set()
+
+    for answer in answers:
+        question = (
+            admin.table("quiz_questions")
+            .select("*")
+            .eq("id", answer.question_id)
+            .maybe_single()
+            .execute()
+            .data
+        )
+        if not question or question["user_id"] != user_id:
+            continue
+
+        is_correct = answer.selected_index == question["correct_index"]
+
+        admin.table("quiz_responses").insert(
+            {
+                "question_id": question["id"],
+                "concept_id": question["concept_id"],
+                "user_id": user_id,
+                "selected_index": answer.selected_index,
+                "is_correct": is_correct,
+            }
+        ).execute()
+
+        affected_concepts.add(question["concept_id"])
+
+    mastery_updates = []
+    for concept_id in affected_concepts:
+        responses = (
+            admin.table("quiz_responses")
+            .select("is_correct")
+            .eq("concept_id", concept_id)
+            .execute()
+            .data
+            or []
+        )
+        total = len(responses)
+        correct = sum(1 for r in responses if r["is_correct"])
+        score = round(100 * correct / total) if total else 0
+
+        admin.table("concept_mastery").update(
+            {
+                "mastery_score": score,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("concept_id", concept_id).execute()
+
+        mastery_updates.append({"concept_id": concept_id, "mastery_score": score})
+
+    return {"mastery_updates": mastery_updates}

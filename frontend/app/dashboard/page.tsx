@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DocumentUpload from "./DocumentUpload";
@@ -31,12 +32,14 @@ export default async function DashboardPage() {
       <ul className="flex flex-col gap-2">
         {documents?.length ? (
           documents.map((doc) => (
-            <li
-              key={doc.id}
-              className="flex items-center justify-between rounded border px-3 py-2"
-            >
-              <span>{doc.filename}</span>
-              <span className="text-sm text-gray-500">{doc.status}</span>
+            <li key={doc.id}>
+              <Link
+                href={`/dashboard/${doc.id}`}
+                className="flex items-center justify-between rounded border px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-900"
+              >
+                <span>{doc.filename}</span>
+                <span className="text-sm text-gray-500">{doc.status}</span>
+              </Link>
             </li>
           ))
         ) : (

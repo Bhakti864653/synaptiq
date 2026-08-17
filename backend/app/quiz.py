@@ -38,6 +38,30 @@ Study material:
 ---
 """
 
+PRACTICE_PROMPT = """You are an expert tutor creating targeted practice questions for a student.
+
+Below is the student's study material, followed by a list of concepts they are currently weak on. For EACH concept listed, write exactly one NEW multiple-choice question (a different angle or scenario than a basic recall question) with 4 answer options that tests that concept, using only information from the material.
+
+Concepts to target: %s
+
+Respond with ONLY valid JSON in this exact shape, no other text:
+{
+  "questions": [
+    {
+      "concept_name": "must exactly match one of the target concept names",
+      "question": "Question text",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correct_index": 0
+    }
+  ]
+}
+
+Study material:
+---
+%s
+---
+"""
+
 
 def get_groq_client() -> Groq:
     return Groq(api_key=os.environ["GROQ_API_KEY"])
@@ -59,6 +83,23 @@ def _get_owned_document(admin, document_id: str, user_id: str) -> dict:
     return document
 
 
+def _get_material(admin, document_id: str) -> str:
+    chunks = (
+        admin.table("document_chunks")
+        .select("content")
+        .eq("document_id", document_id)
+        .order("chunk_index")
+        .execute()
+        .data
+        or []
+    )
+    if not chunks:
+        raise HTTPException(
+            status_code=400, detail="No processed text found for this document"
+        )
+    return "\n\n".join(c["content"] for c in chunks)[:MAX_CONTEXT_CHARS]
+
+
 @router.post("/documents/{document_id}/generate-quiz")
 def generate_quiz(
     document_id: str, authorization: str | None = Header(default=None)
@@ -73,21 +114,7 @@ def generate_quiz(
             detail=f"Document is not ready (status: {document['status']})",
         )
 
-    chunks = (
-        admin.table("document_chunks")
-        .select("content")
-        .eq("document_id", document_id)
-        .order("chunk_index")
-        .execute()
-        .data
-        or []
-    )
-    if not chunks:
-        raise HTTPException(
-            status_code=400, detail="No processed text found for this document"
-        )
-
-    material = "\n\n".join(c["content"] for c in chunks)[:MAX_CONTEXT_CHARS]
+    material = _get_material(admin, document_id)
 
     client = get_groq_client()
     try:
@@ -144,6 +171,98 @@ def generate_quiz(
     ).execute()
 
     return {"status": "quiz_ready", "concept_count": created_count}
+
+
+WEAK_CONCEPT_LIMIT = 3
+
+
+@router.post("/documents/{document_id}/practice")
+def generate_practice(
+    document_id: str, authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    document = _get_owned_document(admin, document_id, user_id)
+
+    concepts = (
+        admin.table("concepts")
+        .select("id, name")
+        .eq("document_id", document_id)
+        .execute()
+        .data
+        or []
+    )
+    if not concepts:
+        raise HTTPException(
+            status_code=400,
+            detail="Generate the diagnostic quiz first so there are concepts to practice.",
+        )
+
+    concept_ids = [c["id"] for c in concepts]
+    mastery_rows = (
+        admin.table("concept_mastery")
+        .select("concept_id, mastery_score")
+        .in_("concept_id", concept_ids)
+        .execute()
+        .data
+        or []
+    )
+    mastery_by_concept = {m["concept_id"]: m["mastery_score"] for m in mastery_rows}
+
+    ranked = sorted(concepts, key=lambda c: mastery_by_concept.get(c["id"], 0))
+    weak_concepts = ranked[:WEAK_CONCEPT_LIMIT]
+    concept_by_name = {c["name"]: c for c in weak_concepts}
+
+    material = _get_material(admin, document_id)
+
+    client = get_groq_client()
+    try:
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": PRACTICE_PROMPT
+                    % (", ".join(concept_by_name.keys()), material),
+                }
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.5,
+        )
+        parsed = json.loads(completion.choices[0].message.content)
+        questions_data = parsed["questions"]
+        if not questions_data:
+            raise ValueError("Model returned no questions")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Practice generation failed: {exc}"
+        )
+
+    created = []
+    for item in questions_data:
+        concept = concept_by_name.get(item["concept_name"])
+        if not concept:
+            continue
+
+        question = (
+            admin.table("quiz_questions")
+            .insert(
+                {
+                    "concept_id": concept["id"],
+                    "document_id": document_id,
+                    "user_id": user_id,
+                    "question_text": item["question"],
+                    "options": item["options"],
+                    "correct_index": item["correct_index"],
+                }
+            )
+            .execute()
+            .data[0]
+        )
+        created.append(question)
+
+    return {"questions": created}
 
 
 class QuizAnswer(BaseModel):

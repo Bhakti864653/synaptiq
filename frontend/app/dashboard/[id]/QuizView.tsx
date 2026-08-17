@@ -48,6 +48,11 @@ export default function QuizView({
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [latestMastery, setLatestMastery] = useState<Mastery[] | null>(null);
+  const [practiceQuestions, setPracticeQuestions] = useState<Question[] | null>(
+    null,
+  );
+  const [practicing, setPracticing] = useState(false);
+  const [submittingPractice, setSubmittingPractice] = useState(false);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -92,6 +97,66 @@ export default function QuizView({
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handlePractice() {
+    setPracticing(true);
+    setError(null);
+    try {
+      const res = await authFetch(`/documents/${documentId}/practice`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Failed (${res.status})`);
+      }
+      const result = await res.json();
+      setPracticeQuestions(result.questions);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setPracticing(false);
+    }
+  }
+
+  async function handleSubmitPractice() {
+    if (!practiceQuestions) return;
+    setSubmittingPractice(true);
+    setError(null);
+    try {
+      const payload = practiceQuestions.map((q) => ({
+        question_id: q.id,
+        selected_index: answers[q.id] ?? -1,
+      }));
+      const res = await authFetch(`/quiz/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Failed (${res.status})`);
+      }
+      const result = await res.json();
+      setLatestMastery((prev) => {
+        const merged = new Map(
+          (prev ?? mastery).map((m) => [m.concept_id, m.mastery_score]),
+        );
+        for (const m of result.mastery_updates as Mastery[]) {
+          merged.set(m.concept_id, m.mastery_score);
+        }
+        return Array.from(merged, ([concept_id, mastery_score]) => ({
+          concept_id,
+          mastery_score,
+        }));
+      });
+      setPracticeQuestions(null);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setSubmittingPractice(false);
     }
   }
 
@@ -167,6 +232,47 @@ export default function QuizView({
             className="text-sm underline w-fit"
           >
             {generating ? "Regenerating..." : "Regenerate quiz"}
+          </button>
+        </div>
+      )}
+
+      {status === "quiz_ready" && !practiceQuestions && (
+        <button
+          onClick={handlePractice}
+          disabled={practicing}
+          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
+        >
+          {practicing ? "Generating practice..." : "Practice weak concepts"}
+        </button>
+      )}
+
+      {practiceQuestions && (
+        <div className="flex flex-col gap-6">
+          <h2 className="font-semibold">Practice session</h2>
+          {practiceQuestions.map((q) => (
+            <div key={q.id} className="flex flex-col gap-2">
+              <p>{q.question_text}</p>
+              {q.options.map((option, i) => (
+                <label key={i} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={q.id}
+                    checked={answers[q.id] === i}
+                    onChange={() =>
+                      setAnswers((prev) => ({ ...prev, [q.id]: i }))
+                    }
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          ))}
+          <button
+            onClick={handleSubmitPractice}
+            disabled={submittingPractice}
+            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
+          >
+            {submittingPractice ? "Submitting..." : "Submit answers"}
           </button>
         </div>
       )}

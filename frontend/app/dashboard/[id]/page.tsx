@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import ExamPlan from "./ExamPlan";
 import QuizView from "./QuizView";
 import TutorChat from "./TutorChat";
 
@@ -71,6 +72,10 @@ export default async function DocumentPage({
 
       {(document.status === "processed" || document.status === "quiz_ready") && (
         <TutorChat documentId={document.id} />
+      )}
+
+      {document.status === "quiz_ready" && (
+        <ExamPlan documentId={document.id} />
       )}
     </main>
   );

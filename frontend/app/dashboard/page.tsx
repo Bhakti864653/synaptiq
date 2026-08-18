@@ -58,9 +58,11 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Your study materials</h1>
-        <LogoutButton />
+        <div className="mr-12">
+          <LogoutButton />
+        </div>
       </div>
 
       {documents?.length ? (

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import MasteryBar from "@/components/MasteryBar";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
+import ErrorMessage from "@/components/ErrorMessage";
 
 type Concept = { id: string; name: string };
 type Question = {
@@ -47,7 +49,9 @@ export default function QuizView({
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [latestMastery, setLatestMastery] = useState<Mastery[] | null>(null);
   const [practiceQuestions, setPracticeQuestions] = useState<Question[] | null>(
@@ -70,7 +74,7 @@ export default function QuizView({
       }
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: handleGenerate });
     } finally {
       setGenerating(false);
     }
@@ -106,7 +110,7 @@ export default function QuizView({
       });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: handleSubmit });
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +130,7 @@ export default function QuizView({
       const result = await res.json();
       setPracticeQuestions(result.questions);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: handlePractice });
     } finally {
       setPracticing(false);
     }
@@ -174,7 +178,10 @@ export default function QuizView({
       });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({
+        message: friendlyErrorMessage(e),
+        retry: handleSubmitPractice,
+      });
     } finally {
       setSubmittingPractice(false);
     }
@@ -345,7 +352,7 @@ export default function QuizView({
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>
   );
 }

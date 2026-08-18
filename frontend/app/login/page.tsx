@@ -4,16 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import ErrorMessage from "@/components/ErrorMessage";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function attemptLogin() {
     setLoading(true);
     setError(null);
 
@@ -25,11 +27,16 @@ export default function LoginPage() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError({ message: error.message, retry: attemptLogin });
       return;
     }
     router.push("/dashboard");
     router.refresh();
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    attemptLogin();
   }
 
   return (
@@ -52,7 +59,7 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           className="rounded border px-3 py-2"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
         <button
           type="submit"
           disabled={loading}

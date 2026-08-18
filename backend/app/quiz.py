@@ -11,7 +11,7 @@ from .supabase_client import get_admin_client
 
 router = APIRouter()
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "openai/gpt-oss-120b"
 MAX_CONTEXT_CHARS = 12000
 
 QUIZ_PROMPT = """You are an expert tutor creating a diagnostic quiz from a student's own study material.

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
+import ErrorMessage from "@/components/ErrorMessage";
 
 type Card = { id: string; front: string; back: string };
 
@@ -24,7 +26,9 @@ async function authFetch(path: string, options: RequestInit = {}) {
 export default function Flashcards({ documentId }: { documentId: string }) {
   const [generating, setGenerating] = useState(false);
   const [loadingDue, setLoadingDue] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
   const [dueCards, setDueCards] = useState<Card[] | null>(null);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -43,7 +47,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
       }
       await handleLoadDue();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: handleGenerate });
     } finally {
       setGenerating(false);
     }
@@ -63,7 +67,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
       setIndex(0);
       setRevealed(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: handleLoadDue });
     } finally {
       setLoadingDue(false);
     }
@@ -87,7 +91,10 @@ export default function Flashcards({ documentId }: { documentId: string }) {
       setRevealed(false);
       setIndex((i) => i + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({
+        message: friendlyErrorMessage(e),
+        retry: () => handleReview(quality),
+      });
     } finally {
       setReviewing(false);
     }
@@ -167,7 +174,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
         </p>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>
   );
 }

@@ -3,17 +3,23 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import ErrorMessage from "@/components/ErrorMessage";
 
 export default function DocumentUpload() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    uploadFile(file);
+  }
 
+  async function uploadFile(file: File) {
     setUploading(true);
     setError(null);
 
@@ -23,7 +29,10 @@ export default function DocumentUpload() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      setError("You must be logged in to upload.");
+      setError({
+        message: "You must be logged in to upload.",
+        retry: () => uploadFile(file),
+      });
       setUploading(false);
       return;
     }
@@ -35,7 +44,7 @@ export default function DocumentUpload() {
       .upload(storagePath, file);
 
     if (uploadError) {
-      setError(uploadError.message);
+      setError({ message: uploadError.message, retry: () => uploadFile(file) });
       setUploading(false);
       return;
     }
@@ -53,7 +62,10 @@ export default function DocumentUpload() {
       .single();
 
     if (insertError || !inserted) {
-      setError(insertError?.message ?? "Could not save document record.");
+      setError({
+        message: insertError?.message ?? "Could not save document record.",
+        retry: () => uploadFile(file),
+      });
       setUploading(false);
       return;
     }
@@ -95,7 +107,7 @@ export default function DocumentUpload() {
         disabled={uploading}
       />
       {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>
   );
 }

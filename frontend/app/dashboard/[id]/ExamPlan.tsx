@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
+import ErrorMessage from "@/components/ErrorMessage";
 
 type PlanItem = {
   concept_id: string;
@@ -37,15 +39,16 @@ export default function ExamPlan({ documentId }: { documentId: string }) {
   const [examDate, setExamDate] = useState("");
   const [hoursPerDay, setHoursPerDay] = useState("1");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
   const [result, setResult] = useState<{
     days_until_exam: number;
     total_minutes: number;
     plan: PlanItem[];
   } | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function buildPlan() {
     setLoading(true);
     setError(null);
     try {
@@ -63,10 +66,15 @@ export default function ExamPlan({ documentId }: { documentId: string }) {
       }
       setResult(await res.json());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({ message: friendlyErrorMessage(e), retry: buildPlan });
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    buildPlan();
   }
 
   return (
@@ -104,7 +112,7 @@ export default function ExamPlan({ documentId }: { documentId: string }) {
         </button>
       </form>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
 
       {result && (
         <div className="flex flex-col gap-2">

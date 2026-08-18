@@ -13,9 +13,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
+    // Must read the real value after mount, not during the initial render:
+    // the pre-hydration inline script (see layout.tsx) may have already set
+    // the "dark" class on <html>, and this render has to match the server's
+    // "light" default first or React logs a hydration mismatch.
     const initial = document.documentElement.classList.contains("dark")
       ? "dark"
       : "light";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(initial);
   }, []);
 

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
+import ErrorMessage from "@/components/ErrorMessage";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -25,17 +27,14 @@ export default function TutorChat({ documentId }: { documentId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [asking, setAsking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(
+    null,
+  );
 
-  async function handleAsk(e: React.FormEvent) {
-    e.preventDefault();
-    const question = input.trim();
-    if (!question) return;
-
-    setInput("");
+  async function ask(question: string, history: Message[]) {
     setError(null);
     const nextMessages: Message[] = [
-      ...messages,
+      ...history,
       { role: "user", content: question },
     ];
     setMessages(nextMessages);
@@ -45,7 +44,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
       const res = await authFetch(`/documents/${documentId}/tutor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, history: messages }),
+        body: JSON.stringify({ question, history }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -57,10 +56,21 @@ export default function TutorChat({ documentId }: { documentId: string }) {
         { role: "assistant", content: result.answer },
       ]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError({
+        message: friendlyErrorMessage(e),
+        retry: () => ask(question, history),
+      });
     } finally {
       setAsking(false);
     }
+  }
+
+  function handleAsk(e: React.FormEvent) {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question) return;
+    setInput("");
+    ask(question, messages);
   }
 
   return (
@@ -97,7 +107,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
           Ask
         </button>
       </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>
   );
 }

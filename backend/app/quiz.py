@@ -100,22 +100,9 @@ def _get_material(admin, document_id: str) -> str:
     return "\n\n".join(c["content"] for c in chunks)[:MAX_CONTEXT_CHARS]
 
 
-@router.post("/documents/{document_id}/generate-quiz")
-def generate_quiz(
-    document_id: str, authorization: str | None = Header(default=None)
-):
-    user_id = get_user_id(authorization)
-    admin = get_admin_client()
-
-    document = _get_owned_document(admin, document_id, user_id)
-    if document["status"] not in ("processed", "quiz_ready"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Document is not ready (status: {document['status']})",
-        )
-
-    material = _get_material(admin, document_id)
-
+def create_quiz_from_material(
+    admin, document_id: str, user_id: str, material: str
+) -> int:
     client = get_groq_client()
     try:
         completion = client.chat.completions.create(
@@ -169,6 +156,26 @@ def generate_quiz(
     admin.table("documents").update({"status": "quiz_ready"}).eq(
         "id", document_id
     ).execute()
+
+    return created_count
+
+
+@router.post("/documents/{document_id}/generate-quiz")
+def generate_quiz(
+    document_id: str, authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    document = _get_owned_document(admin, document_id, user_id)
+    if document["status"] not in ("processed", "quiz_ready"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document is not ready (status: {document['status']})",
+        )
+
+    material = _get_material(admin, document_id)
+    created_count = create_quiz_from_material(admin, document_id, user_id, material)
 
     return {"status": "quiz_ready", "concept_count": created_count}
 

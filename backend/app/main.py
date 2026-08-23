@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .demo import router as demo_router
 from .documents import router as documents_router
 from .exam import router as exam_router
 from .flashcards import router as flashcards_router
@@ -27,6 +28,7 @@ app.include_router(quiz_router)
 app.include_router(tutor_router)
 app.include_router(exam_router)
 app.include_router(flashcards_router)
+app.include_router(demo_router)
 
 
 @app.get("/health")

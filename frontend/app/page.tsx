@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TryDemoButton from "@/components/TryDemoButton";
 
 export default function Home() {
   return (
@@ -8,7 +9,7 @@ export default function Home() {
         Upload your study materials and let Synaptiq figure out what you
         actually know.
       </p>
-      <div className="flex gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-4">
         <Link
           href="/signup"
           className="rounded-full bg-black px-6 py-3 text-white dark:bg-white dark:text-black"
@@ -21,6 +22,7 @@ export default function Home() {
         >
           Log in
         </Link>
+        <TryDemoButton />
       </div>
     </main>
   );

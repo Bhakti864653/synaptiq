@@ -1,9 +1,10 @@
 import os
 import secrets
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 
 from .demo_content import SAMPLE_FILENAME, SAMPLE_TEXT
 from .documents import chunk_text
@@ -13,6 +14,34 @@ from .supabase_client import get_admin_client, get_anon_client
 router = APIRouter()
 
 DEMO_ACCOUNT_MAX_AGE = timedelta(hours=24)
+
+# Per-IP fixed-window limit on /demo/start, since it's public and unauthenticated
+# and each call spends a real Groq API request. In-memory is fine for a single
+# free-tier instance; a restart just resets everyone's window.
+DEMO_START_LIMIT = 3
+DEMO_START_WINDOW = timedelta(hours=1)
+_demo_start_calls: dict[str, list[datetime]] = defaultdict(list)
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_demo_rate_limit(request: Request) -> None:
+    ip = _client_ip(request)
+    now = datetime.now(timezone.utc)
+    cutoff = now - DEMO_START_WINDOW
+    recent = [t for t in _demo_start_calls[ip] if t > cutoff]
+    if len(recent) >= DEMO_START_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many demo sessions from this address. Try again later.",
+        )
+    recent.append(now)
+    _demo_start_calls[ip] = recent
 
 # Deletion order matters: children before the parent rows they reference.
 DEMO_TABLES_IN_DELETE_ORDER = [
@@ -27,7 +56,8 @@ DEMO_TABLES_IN_DELETE_ORDER = [
 
 
 @router.post("/demo/start")
-def start_demo():
+def start_demo(request: Request):
+    _check_demo_rate_limit(request)
     admin = get_admin_client()
 
     # .invalid is reserved by RFC 2606 for exactly this purpose — a domain
@@ -103,8 +133,8 @@ def start_demo():
 
 @router.post("/demo/cleanup")
 def cleanup_demo_accounts(authorization: str | None = Header(default=None)):
-    expected_secret = os.environ["DEMO_CLEANUP_SECRET"]
-    if authorization != f"Bearer {expected_secret}":
+    expected = f"Bearer {os.environ['DEMO_CLEANUP_SECRET']}"
+    if not authorization or not secrets.compare_digest(authorization, expected):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     admin = get_admin_client()

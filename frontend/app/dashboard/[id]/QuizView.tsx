@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import MasteryBar from "@/components/MasteryBar";
+import Button from "@/components/Button";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 
@@ -31,6 +32,53 @@ async function authFetch(path: string, options: RequestInit = {}) {
       Authorization: `Bearer ${session.access_token}`,
     },
   });
+}
+
+function QuestionBlock({
+  question,
+  selected,
+  result,
+  onSelect,
+}: {
+  question: Question;
+  selected: number | undefined;
+  result: Result | undefined;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-ink">{question.question_text}</p>
+      {question.options.map((option, i) => (
+        <label
+          key={i}
+          className={`flex items-center gap-2 ${
+            result && i === result.correct_index
+              ? "font-medium text-mastered"
+              : result && i === selected && !result.is_correct
+                ? "text-weak"
+                : "text-ink"
+          }`}
+        >
+          <input
+            type="radio"
+            name={question.id}
+            checked={selected === i}
+            disabled={!!result}
+            onChange={() => onSelect(i)}
+            className="accent-brand"
+          />
+          {option}
+        </label>
+      ))}
+      {result && (
+        <p
+          className={`text-sm font-medium ${result.is_correct ? "text-mastered" : "text-weak"}`}
+        >
+          {result.is_correct ? "Correct" : "Incorrect"}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function QuizView({
@@ -193,7 +241,7 @@ export default function QuizView({
 
   if (status === "uploaded" || status === "processing") {
     return (
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-muted">
         Still processing this document — check back in a moment.
       </p>
     );
@@ -203,7 +251,7 @@ export default function QuizView({
     <div className="flex flex-col gap-6">
       {concepts.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h2 className="font-semibold">Concepts</h2>
+          <h2 className="font-semibold text-ink">Concepts</h2>
           {concepts.map((c) => (
             <MasteryBar
               key={c.id}
@@ -215,139 +263,69 @@ export default function QuizView({
       )}
 
       {status === "processed" && (
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
-        >
+        <Button onClick={handleGenerate} disabled={generating} className="w-fit">
           {generating ? "Generating quiz..." : "Generate diagnostic quiz"}
-        </button>
+        </Button>
       )}
 
       {status === "quiz_ready" && questions.length > 0 && (
         <div className="flex flex-col gap-6">
-          <h2 className="font-semibold">Diagnostic quiz</h2>
-          {questions.map((q) => {
-            const result = results[q.id];
-            return (
-              <div key={q.id} className="flex flex-col gap-2">
-                <p>{q.question_text}</p>
-                {q.options.map((option, i) => (
-                  <label
-                    key={i}
-                    className={`flex items-center gap-2 ${
-                      result && i === result.correct_index
-                        ? "text-green-600 font-medium"
-                        : result && i === answers[q.id] && !result.is_correct
-                          ? "text-red-600"
-                          : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={q.id}
-                      checked={answers[q.id] === i}
-                      disabled={!!result}
-                      onChange={() =>
-                        setAnswers((prev) => ({ ...prev, [q.id]: i }))
-                      }
-                    />
-                    {option}
-                  </label>
-                ))}
-                {result && (
-                  <p
-                    className={`text-sm ${result.is_correct ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {result.is_correct ? "Correct" : "Incorrect"}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
-          >
-            {submitting ? "Submitting..." : "Submit answers"}
-          </button>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="text-sm underline w-fit"
-          >
-            {generating ? "Regenerating..." : "Regenerate quiz"}
-          </button>
+          <h2 className="font-semibold text-ink">Diagnostic quiz</h2>
+          {questions.map((q) => (
+            <QuestionBlock
+              key={q.id}
+              question={q}
+              selected={answers[q.id]}
+              result={results[q.id]}
+              onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+            />
+          ))}
+          <div className="flex items-center gap-4">
+            <Button onClick={handleSubmit} disabled={submitting} className="w-fit">
+              {submitting ? "Submitting..." : "Submit answers"}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="w-fit px-0"
+            >
+              {generating ? "Regenerating..." : "Regenerate quiz"}
+            </Button>
+          </div>
         </div>
       )}
 
       {status === "quiz_ready" && !practiceQuestions && (
-        <button
-          onClick={handlePractice}
-          disabled={practicing}
-          className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
-        >
+        <Button onClick={handlePractice} disabled={practicing} className="w-fit">
           {practicing ? "Generating practice..." : "Practice weak concepts"}
-        </button>
+        </Button>
       )}
 
       {practiceQuestions && (
         <div className="flex flex-col gap-6">
-          <h2 className="font-semibold">Practice session</h2>
-          {practiceQuestions.map((q) => {
-            const result = results[q.id];
-            return (
-              <div key={q.id} className="flex flex-col gap-2">
-                <p>{q.question_text}</p>
-                {q.options.map((option, i) => (
-                  <label
-                    key={i}
-                    className={`flex items-center gap-2 ${
-                      result && i === result.correct_index
-                        ? "text-green-600 font-medium"
-                        : result && i === answers[q.id] && !result.is_correct
-                          ? "text-red-600"
-                          : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={q.id}
-                      checked={answers[q.id] === i}
-                      disabled={!!result}
-                      onChange={() =>
-                        setAnswers((prev) => ({ ...prev, [q.id]: i }))
-                      }
-                    />
-                    {option}
-                  </label>
-                ))}
-                {result && (
-                  <p
-                    className={`text-sm ${result.is_correct ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {result.is_correct ? "Correct" : "Incorrect"}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+          <h2 className="font-semibold text-ink">Practice session</h2>
+          {practiceQuestions.map((q) => (
+            <QuestionBlock
+              key={q.id}
+              question={q}
+              selected={answers[q.id]}
+              result={results[q.id]}
+              onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+            />
+          ))}
           {practiceQuestions.some((q) => !results[q.id]) ? (
-            <button
+            <Button
               onClick={handleSubmitPractice}
               disabled={submittingPractice}
-              className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
+              className="w-fit"
             >
               {submittingPractice ? "Submitting..." : "Submit answers"}
-            </button>
+            </Button>
           ) : (
-            <button
-              onClick={() => setPracticeQuestions(null)}
-              className="rounded bg-black px-3 py-2 text-white w-fit"
-            >
+            <Button onClick={() => setPracticeQuestions(null)} className="w-fit">
               Done
-            </button>
+            </Button>
           )}
         </div>
       )}

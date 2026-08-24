@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
+import Input from "@/components/Input";
+import Button from "@/components/Button";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -75,37 +77,33 @@ export default function TutorChat({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-semibold">Ask the tutor</h2>
+      <h2 className="font-semibold text-ink">Ask the tutor</h2>
       <div className="flex flex-col gap-3">
         {messages.map((m, i) => (
           <div
             key={i}
             className={
               m.role === "user"
-                ? "self-end rounded bg-black px-3 py-2 text-white max-w-[80%]"
-                : "self-start rounded border px-3 py-2 max-w-[80%]"
+                ? "max-w-[80%] self-end rounded-xl bg-brand px-3 py-2 text-brand-ink"
+                : "max-w-[80%] self-start rounded-xl border border-line bg-surface px-3 py-2 text-ink"
             }
           >
             {m.content}
           </div>
         ))}
-        {asking && <p className="text-sm text-gray-500">Thinking...</p>}
+        {asking && <p className="text-sm text-ink-muted">Thinking...</p>}
       </div>
       <form onSubmit={handleAsk} className="flex gap-2">
-        <input
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask a question about your material..."
           disabled={asking}
-          className="flex-1 rounded border px-3 py-2"
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={asking || !input.trim()}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={asking || !input.trim()}>
           Ask
-        </button>
+        </Button>
       </form>
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>

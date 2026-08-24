@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "./ErrorMessage";
+import Button from "./Button";
 
 export default function TryDemoButton() {
   const router = useRouter();
@@ -44,13 +45,9 @@ export default function TryDemoButton() {
 
   return (
     <div className="flex flex-col gap-2">
-      <button
-        onClick={startDemo}
-        disabled={starting}
-        className="rounded-full border px-6 py-3 disabled:opacity-50"
-      >
+      <Button variant="secondary" onClick={startDemo} disabled={starting}>
         {starting ? "Setting up your demo..." : "Try the demo"}
-      </button>
+      </Button>
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </div>
   );

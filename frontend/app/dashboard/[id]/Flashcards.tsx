@@ -4,8 +4,10 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
+import Button from "@/components/Button";
+import Card from "@/components/Card";
 
-type Card = { id: string; front: string; back: string };
+type CardData = { id: string; front: string; back: string };
 
 async function authFetch(path: string, options: RequestInit = {}) {
   const supabase = createClient();
@@ -29,7 +31,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
     null,
   );
-  const [dueCards, setDueCards] = useState<Card[] | null>(null);
+  const [dueCards, setDueCards] = useState<CardData[] | null>(null);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [reviewing, setReviewing] = useState(false);
@@ -104,72 +106,66 @@ export default function Flashcards({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-semibold">Flashcards</h2>
+      <h2 className="font-semibold text-ink">Flashcards</h2>
 
       {!dueCards && (
         <div className="flex gap-2">
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50 w-fit"
-          >
+          <Button onClick={handleGenerate} disabled={generating} className="w-fit">
             {generating ? "Generating..." : "Generate flashcards"}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleLoadDue}
             disabled={loadingDue}
-            className="rounded border px-3 py-2 w-fit"
+            className="w-fit"
           >
             {loadingDue ? "Loading..." : "Review due cards"}
-          </button>
+          </Button>
         </div>
       )}
 
       {dueCards && currentCard && (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-gray-500">
+          <p className="font-mono text-sm text-ink-muted">
             Card {index + 1} of {dueCards.length}
           </p>
-          <div className="rounded border p-6 text-center min-h-24 flex items-center justify-center">
+          <Card className="flex min-h-24 items-center justify-center p-6 text-center text-ink">
             {revealed ? currentCard.back : currentCard.front}
-          </div>
+          </Card>
           {!revealed ? (
-            <button
-              onClick={() => setRevealed(true)}
-              className="rounded bg-black px-3 py-2 text-white w-fit"
-            >
+            <Button onClick={() => setRevealed(true)} className="w-fit">
               Show answer
-            </button>
+            </Button>
           ) : (
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => handleReview("again")}
                 disabled={reviewing}
-                className="rounded border px-3 py-2 disabled:opacity-50"
               >
                 Again
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => handleReview("good")}
                 disabled={reviewing}
-                className="rounded border px-3 py-2 disabled:opacity-50"
               >
                 Good
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => handleReview("easy")}
                 disabled={reviewing}
-                className="rounded border px-3 py-2 disabled:opacity-50"
               >
                 Easy
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
       {dueCards && !currentCard && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-muted">
           No cards due right now — check back later, or generate a fresh set.
         </p>
       )}

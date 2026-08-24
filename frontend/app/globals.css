@@ -3,24 +3,48 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #16181d;
+  --ink-muted: #5b5f6a;
+  --line: #dcdfe4;
+  --brand: #3454d1;
+  --brand-ink: #ffffff;
+  --weak: #c0392b;
+  --growing: #c98a1e;
+  --mastered: #1f7a5c;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --paper: #14161b;
+  --surface: #1b1e24;
+  --ink: #e7e8ea;
+  --ink-muted: #9a9ea8;
+  --line: #2a2d34;
+  --brand: #6c86f2;
+  --brand-ink: #0b0d11;
+  --weak: #e2685c;
+  --growing: #dba53c;
+  --mastered: #3fa383;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-weak: var(--weak);
+  --color-growing: var(--growing);
+  --color-mastered: var(--mastered);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }

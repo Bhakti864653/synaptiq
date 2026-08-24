@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import MasteryBar from "@/components/MasteryBar";
+import Card from "@/components/Card";
 import DocumentUpload from "./DocumentUpload";
-import LogoutButton from "./LogoutButton";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -57,44 +57,41 @@ export default async function DashboardPage() {
   const overallMastery = averageMastery(allConceptIds);
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Your study materials</h1>
-        <div className="mr-12">
-          <LogoutButton />
-        </div>
-      </div>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold text-ink">Your study materials</h1>
 
       {documents?.length ? (
-        <div className="flex flex-col gap-3 rounded border p-4">
-          <h2 className="font-semibold">Overview</h2>
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-semibold text-ink">Overview</h2>
           <div className="grid grid-cols-3 gap-4 text-center text-sm">
             <div>
-              <div className="text-xl font-semibold">{documents.length}</div>
-              <div className="text-gray-500">documents</div>
+              <div className="font-mono text-xl font-semibold text-ink">
+                {documents.length}
+              </div>
+              <div className="text-ink-muted">documents</div>
             </div>
             <div>
-              <div className="text-xl font-semibold">
+              <div className="font-mono text-xl font-semibold text-ink">
                 {allConceptIds.length}
               </div>
-              <div className="text-gray-500">concepts tracked</div>
+              <div className="text-ink-muted">concepts tracked</div>
             </div>
             <div>
-              <div className="text-xl font-semibold">
+              <div className="font-mono text-xl font-semibold text-ink">
                 {questionsAnswered ?? 0}
               </div>
-              <div className="text-gray-500">questions answered</div>
+              <div className="text-ink-muted">questions answered</div>
             </div>
           </div>
           {overallMastery !== null && (
             <MasteryBar score={overallMastery} label="Overall mastery" />
           )}
-        </div>
+        </Card>
       ) : null}
 
       <DocumentUpload />
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {documents?.length ? (
           documents.map((doc) => {
             const docMastery = averageMastery(
@@ -102,25 +99,25 @@ export default async function DashboardPage() {
             );
             return (
               <li key={doc.id}>
-                <Link
-                  href={`/dashboard/${doc.id}`}
-                  className="flex flex-col gap-2 rounded border px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-900"
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{doc.filename}</span>
-                    <span className="text-sm text-gray-500">
-                      {doc.status}
-                    </span>
-                  </div>
-                  {docMastery !== null && <MasteryBar score={docMastery} />}
+                <Link href={`/dashboard/${doc.id}`}>
+                  <Card
+                    mastery={docMastery ?? undefined}
+                    className="flex flex-col gap-2 transition-colors hover:border-brand"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink">{doc.filename}</span>
+                      <span className="font-mono text-sm text-ink-muted">
+                        {doc.status}
+                      </span>
+                    </div>
+                    {docMastery !== null && <MasteryBar score={docMastery} />}
+                  </Card>
                 </Link>
               </li>
             );
           })
         ) : (
-          <p className="text-sm text-gray-500">
-            No documents uploaded yet.
-          </p>
+          <p className="text-sm text-ink-muted">No documents uploaded yet.</p>
         )}
       </ul>
     </main>

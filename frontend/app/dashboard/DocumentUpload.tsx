@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ErrorMessage from "@/components/ErrorMessage";
+import Card from "@/components/Card";
 
 export default function DocumentUpload() {
   const router = useRouter();
@@ -98,16 +99,20 @@ export default function DocumentUpload() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <Card className="flex flex-col gap-2">
+      <label className="text-sm font-medium text-ink">
+        Upload a study material
+      </label>
       <input
         ref={fileInputRef}
         type="file"
         accept=".pdf,.pptx,.ppt,.docx,.doc,.txt"
         onChange={handleFileChange}
         disabled={uploading}
+        className="text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-ink file:transition-opacity hover:file:opacity-90"
       />
-      {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
+      {uploading && <p className="text-sm text-ink-muted">Uploading...</p>}
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
-    </div>
+    </Card>
   );
 }

@@ -5,6 +5,7 @@ import ExamPlan from "./ExamPlan";
 import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
 import TutorChat from "./TutorChat";
+import DocumentTabs from "./DocumentTabs";
 
 export default async function DocumentPage({
   params,
@@ -50,38 +51,57 @@ export default async function DocumentPage({
         .in("concept_id", conceptIds)
     : { data: [] };
 
+  const tabs = [
+    {
+      id: "quiz",
+      label: "Quiz",
+      content: (
+        <QuizView
+          documentId={document.id}
+          status={document.status}
+          concepts={concepts ?? []}
+          questions={questions ?? []}
+          mastery={mastery ?? []}
+        />
+      ),
+    },
+  ];
+
+  if (document.status === "processed" || document.status === "quiz_ready") {
+    tabs.push({
+      id: "tutor",
+      label: "Tutor",
+      content: <TutorChat documentId={document.id} />,
+    });
+  }
+
+  if (document.status === "quiz_ready") {
+    tabs.push({
+      id: "exam",
+      label: "Exam Mode",
+      content: <ExamPlan documentId={document.id} />,
+    });
+    tabs.push({
+      id: "flashcards",
+      label: "Flashcards",
+      content: <Flashcards documentId={document.id} />,
+    });
+  }
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <Link href="/dashboard" className="text-sm underline">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      <Link href="/dashboard" className="w-fit text-sm text-ink-muted hover:text-ink">
         &larr; Back to your materials
       </Link>
-      <h1 className="text-2xl font-semibold">{document.filename}</h1>
+      <h1 className="text-2xl font-semibold text-ink">{document.filename}</h1>
 
       {document.status === "error" && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-weak">
           Processing failed: {document.error_message}
         </p>
       )}
 
-      <QuizView
-        documentId={document.id}
-        status={document.status}
-        concepts={concepts ?? []}
-        questions={questions ?? []}
-        mastery={mastery ?? []}
-      />
-
-      {(document.status === "processed" || document.status === "quiz_ready") && (
-        <TutorChat documentId={document.id} />
-      )}
-
-      {document.status === "quiz_ready" && (
-        <ExamPlan documentId={document.id} />
-      )}
-
-      {document.status === "quiz_ready" && (
-        <Flashcards documentId={document.id} />
-      )}
+      <DocumentTabs tabs={tabs} />
     </main>
   );
 }

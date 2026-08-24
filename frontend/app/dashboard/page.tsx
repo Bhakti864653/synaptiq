@@ -57,7 +57,7 @@ export default async function DashboardPage() {
   const overallMastery = averageMastery(allConceptIds);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
       <h1 className="text-2xl font-semibold text-ink">Your study materials</h1>
 
       {documents?.length ? (
@@ -91,32 +91,35 @@ export default async function DashboardPage() {
 
       <DocumentUpload />
 
-      <ul className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-ink">Study materials</h2>
         {documents?.length ? (
-          documents.map((doc) => {
-            const docMastery = averageMastery(
-              conceptsByDocument.get(doc.id) ?? [],
-            );
-            return (
-              <li key={doc.id}>
-                <Link href={`/dashboard/${doc.id}`}>
-                  <Card className="flex flex-col gap-2 transition-colors hover:bg-line/30">
-                    <div className="flex items-center justify-between">
-                      <span className="text-ink">{doc.filename}</span>
-                      <span className="font-mono text-sm text-ink-muted">
-                        {doc.status}
-                      </span>
-                    </div>
-                    {docMastery !== null && <MasteryBar score={docMastery} />}
-                  </Card>
-                </Link>
-              </li>
-            );
-          })
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {documents.map((doc) => {
+              const docMastery = averageMastery(
+                conceptsByDocument.get(doc.id) ?? [],
+              );
+              return (
+                <li key={doc.id}>
+                  <Link href={`/dashboard/${doc.id}`}>
+                    <Card className="flex h-full flex-col gap-2 transition-colors hover:bg-line/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-ink">{doc.filename}</span>
+                        <span className="font-mono text-sm text-ink-muted">
+                          {doc.status}
+                        </span>
+                      </div>
+                      {docMastery !== null && <MasteryBar score={docMastery} />}
+                    </Card>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <p className="text-sm text-ink-muted">No documents uploaded yet.</p>
         )}
-      </ul>
+      </div>
     </main>
   );
 }

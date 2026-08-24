@@ -145,7 +145,7 @@ export default function ActivationPlayground() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-semibold text-ink">Activation-function playground</h2>
+        <h2 className="text-lg font-semibold text-ink">Activation-function playground</h2>
         <p className="text-sm text-ink-muted">
           The same input, x, run through three different activation functions. Hover any curve to
           read exact values. Notice ReLU is unbounded and linear past zero, while sigmoid and tanh

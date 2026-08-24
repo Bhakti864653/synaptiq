@@ -106,7 +106,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-semibold text-ink">Flashcards</h2>
+      <h2 className="text-lg font-semibold text-ink">Flashcards</h2>
 
       {!dueCards && (
         <div className="flex gap-2">

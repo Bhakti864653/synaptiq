@@ -4,12 +4,12 @@ import LogoutButton from "@/app/dashboard/LogoutButton";
 
 export default function TopNav({ showLogout = false }: { showLogout?: boolean }) {
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-paper/85 px-6 py-3 backdrop-blur">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-paper px-6 py-3">
       <Link
         href={showLogout ? "/dashboard" : "/"}
-        className="font-mono text-sm font-semibold tracking-widest text-ink"
+        className="text-base font-semibold text-ink"
       >
-        SYNAPTIQ
+        Synaptiq
       </Link>
       <div className="flex items-center gap-4">
         {showLogout && <LogoutButton />}

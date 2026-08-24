@@ -3,12 +3,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --paper: #f4f5f7;
+  --paper: #ffffff;
   --surface: #ffffff;
-  --ink: #16181d;
-  --ink-muted: #5b5f6a;
-  --line: #dcdfe4;
-  --brand: #3454d1;
+  --ink: #191919;
+  --ink-muted: #787774;
+  --line: #e9e9e7;
+  --brand: #2383e2;
   --brand-ink: #ffffff;
   --weak: #c0392b;
   --growing: #c98a1e;
@@ -19,13 +19,13 @@
 }
 
 .dark {
-  --paper: #14161b;
-  --surface: #1b1e24;
-  --ink: #e7e8ea;
-  --ink-muted: #9a9ea8;
-  --line: #2a2d34;
-  --brand: #6c86f2;
-  --brand-ink: #0b0d11;
+  --paper: #191919;
+  --surface: #191919;
+  --ink: #d4d4d4;
+  --ink-muted: #999999;
+  --line: #2f2f2f;
+  --brand: #529cca;
+  --brand-ink: #191919;
   --weak: #e2685c;
   --growing: #dba53c;
   --mastered: #3fa383;
@@ -56,4 +56,25 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
 }

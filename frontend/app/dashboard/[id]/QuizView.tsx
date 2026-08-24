@@ -269,7 +269,7 @@ export default function QuizView({
     <div className="flex flex-col gap-6">
       {concepts.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h2 className="font-semibold text-ink">Concepts</h2>
+          <h2 className="text-lg font-semibold text-ink">Concepts</h2>
           {concepts.map((c) => (
             <MasteryBar
               key={c.id}
@@ -288,7 +288,7 @@ export default function QuizView({
 
       {status === "quiz_ready" && questions.length > 0 && (
         <div className="flex flex-col gap-6">
-          <h2 className="font-semibold text-ink">Diagnostic quiz</h2>
+          <h2 className="text-lg font-semibold text-ink">Diagnostic quiz</h2>
           {questions.map((q) => (
             <QuestionBlock
               key={q.id}
@@ -322,7 +322,7 @@ export default function QuizView({
 
       {practiceQuestions && (
         <div className="flex flex-col gap-6">
-          <h2 className="font-semibold text-ink">Practice session</h2>
+          <h2 className="text-lg font-semibold text-ink">Practice session</h2>
           {practiceQuestions.map((q) => (
             <QuestionBlock
               key={q.id}

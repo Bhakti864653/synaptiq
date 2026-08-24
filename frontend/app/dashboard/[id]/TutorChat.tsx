@@ -78,7 +78,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-semibold text-ink">Ask the tutor</h2>
+      <h2 className="text-lg font-semibold text-ink">Ask the tutor</h2>
       <div className="flex flex-col gap-3">
         {messages.map((m, i) => (
           <div

@@ -82,7 +82,7 @@ export default function ExamPlan({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-semibold text-ink">Exam Mode</h2>
+      <h2 className="text-lg font-semibold text-ink">Exam Mode</h2>
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1.5 text-sm text-ink">
           Exam date
@@ -123,10 +123,7 @@ export default function ExamPlan({ documentId }: { documentId: string }) {
           <ul className="flex flex-col gap-2">
             {result.plan.map((item) => (
               <li key={item.concept_id}>
-                <Card
-                  mastery={item.mastery_score}
-                  className="flex items-center justify-between"
-                >
+                <Card className="flex items-center justify-between">
                   <div>
                     <div className="text-ink">{item.name}</div>
                     <div className="font-mono text-sm text-ink-muted">

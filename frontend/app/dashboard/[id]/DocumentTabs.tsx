@@ -34,7 +34,9 @@ export default function DocumentTabs({ tabs }: { tabs: Tab[] }) {
           );
         })}
       </div>
-      {active?.content}
+      <div key={active?.id} className="animate-fade-up">
+        {active?.content}
+      </div>
     </div>
   );
 }

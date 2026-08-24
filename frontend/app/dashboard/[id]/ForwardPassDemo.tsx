@@ -67,7 +67,7 @@ export default function ForwardPassDemo() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-semibold text-ink">Interactive forward-pass demo</h2>
+        <h2 className="text-lg font-semibold text-ink">Interactive forward-pass demo</h2>
         <p className="text-sm text-ink-muted">
           Drag a sample input onto the network below (or just click one), then step through exactly
           how it turns into a prediction — the same arithmetic {"—"} weighted sum, bias, activation

@@ -62,7 +62,7 @@ export default async function DashboardPage() {
 
       {documents?.length ? (
         <Card className="flex flex-col gap-3">
-          <h2 className="font-semibold text-ink">Overview</h2>
+          <h2 className="text-lg font-semibold text-ink">Overview</h2>
           <div className="grid grid-cols-3 gap-4 text-center text-sm">
             <div>
               <div className="font-mono text-xl font-semibold text-ink">
@@ -100,10 +100,7 @@ export default async function DashboardPage() {
             return (
               <li key={doc.id}>
                 <Link href={`/dashboard/${doc.id}`}>
-                  <Card
-                    mastery={docMastery ?? undefined}
-                    className="flex flex-col gap-2 transition-colors hover:border-brand"
-                  >
+                  <Card className="flex flex-col gap-2 transition-colors hover:bg-line/30">
                     <div className="flex items-center justify-between">
                       <span className="text-ink">{doc.filename}</span>
                       <span className="font-mono text-sm text-ink-muted">

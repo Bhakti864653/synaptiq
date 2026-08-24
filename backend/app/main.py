@@ -10,6 +10,7 @@ from .documents import router as documents_router
 from .exam import router as exam_router
 from .flashcards import router as flashcards_router
 from .quiz import router as quiz_router
+from .transcribe import router as transcribe_router
 from .tutor import router as tutor_router
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
@@ -29,6 +30,7 @@ app.include_router(tutor_router)
 app.include_router(exam_router)
 app.include_router(flashcards_router)
 app.include_router(demo_router)
+app.include_router(transcribe_router)
 
 
 @app.get("/health")

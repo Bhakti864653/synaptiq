@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import MasteryBar from "@/components/MasteryBar";
 import Button from "@/components/Button";
+import VoiceButton from "@/components/VoiceButton";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
+import { matchSpokenAnswer } from "@/lib/matchSpokenAnswer";
 import ErrorMessage from "@/components/ErrorMessage";
 
 type Concept = { id: string; name: string };
@@ -45,9 +47,25 @@ function QuestionBlock({
   result: Result | undefined;
   onSelect: (index: number) => void;
 }) {
+  const [voiceHint, setVoiceHint] = useState<string | null>(null);
+
+  function handleVoiceAnswer(transcript: string) {
+    const index = matchSpokenAnswer(transcript, question.options);
+    if (index === null) {
+      setVoiceHint(`Didn't catch that — try saying the letter, like "B".`);
+      return;
+    }
+    setVoiceHint(null);
+    onSelect(index);
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-ink">{question.question_text}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-ink">{question.question_text}</p>
+        {!result && <VoiceButton onText={handleVoiceAnswer} />}
+      </div>
+      {voiceHint && <p className="text-xs text-ink-muted">{voiceHint}</p>}
       {question.options.map((option, i) => (
         <label
           key={i}

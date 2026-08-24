@@ -6,6 +6,7 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import VoiceButton from "@/components/VoiceButton";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -101,6 +102,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
           disabled={asking}
           className="flex-1"
         />
+        <VoiceButton onText={(text) => setInput((prev) => (prev ? `${prev} ${text}` : text))} />
         <Button type="submit" disabled={asking || !input.trim()}>
           Ask
         </Button>

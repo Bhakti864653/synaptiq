@@ -6,6 +6,9 @@ import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
 import TutorChat from "./TutorChat";
 import DocumentTabs from "./DocumentTabs";
+import ForwardPassDemo from "./ForwardPassDemo";
+import ActivationPlayground from "./ActivationPlayground";
+import { SAMPLE_FILENAME } from "@/lib/demoContent";
 
 export default async function DocumentPage({
   params,
@@ -85,6 +88,19 @@ export default async function DocumentPage({
       id: "flashcards",
       label: "Flashcards",
       content: <Flashcards documentId={document.id} />,
+    });
+  }
+
+  if (document.filename === SAMPLE_FILENAME) {
+    tabs.push({
+      id: "forward-pass",
+      label: "Forward Pass",
+      content: <ForwardPassDemo />,
+    });
+    tabs.push({
+      id: "activations",
+      label: "Activations",
+      content: <ActivationPlayground />,
     });
   }
 

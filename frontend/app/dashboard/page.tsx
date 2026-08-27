@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import MasteryBar from "@/components/MasteryBar";
-import Card from "@/components/Card";
 import DocumentUpload from "./DocumentUpload";
+import MaterialCard from "./MaterialCard";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -55,70 +54,72 @@ export default async function DashboardPage() {
 
   const allConceptIds = (concepts ?? []).map((c) => c.id);
   const overallMastery = averageMastery(allConceptIds);
+  const isReturningUser = (documents?.length ?? 0) > 0;
+
+  if (!isReturningUser) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold text-ink">
+            Let&apos;s get you started
+          </h1>
+          <p className="text-sm text-ink-muted">
+            Upload a file or paste your notes — Synaptiq will turn them into a
+            diagnostic quiz and start tracking what you know.
+          </p>
+        </div>
+        <DocumentUpload />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
-      <h1 className="text-2xl font-semibold text-ink">Your study materials</h1>
-
-      {documents?.length ? (
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-ink">Overview</h2>
-          <div className="grid grid-cols-3 gap-4 text-center text-sm">
-            <div>
-              <div className="font-mono text-xl font-semibold text-ink">
-                {documents.length}
-              </div>
-              <div className="text-ink-muted">documents</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-semibold text-ink">
-                {allConceptIds.length}
-              </div>
-              <div className="text-ink-muted">concepts tracked</div>
-            </div>
-            <div>
-              <div className="font-mono text-xl font-semibold text-ink">
-                {questionsAnswered ?? 0}
-              </div>
-              <div className="text-ink-muted">questions answered</div>
-            </div>
-          </div>
-          {overallMastery !== null && (
-            <MasteryBar score={overallMastery} label="Overall mastery" />
-          )}
-        </Card>
-      ) : null}
-
-      <DocumentUpload />
+      <div className="gradient-hero flex items-end justify-between gap-4 rounded-2xl p-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">Study materials</h1>
+          <p className="text-sm text-ink-muted">
+            {documents?.length ?? 0} document{documents?.length === 1 ? "" : "s"} ·{" "}
+            {questionsAnswered ?? 0} question{questionsAnswered === 1 ? "" : "s"} answered
+          </p>
+        </div>
+        {overallMastery !== null && (
+          <Link href="/dashboard/progress" className="group flex flex-col items-end">
+            <span
+              className="font-mono text-3xl font-bold leading-none text-black"
+              style={{ textShadow: "0 1px 4px rgba(255,255,255,0.45)" }}
+            >
+              {overallMastery}%
+            </span>
+            <span className="text-xs text-ink-muted group-hover:text-ink">
+              overall mastery &rarr;
+            </span>
+          </Link>
+        )}
+      </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-ink">Study materials</h2>
-        {documents?.length ? (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {documents.map((doc) => {
-              const docMastery = averageMastery(
-                conceptsByDocument.get(doc.id) ?? [],
-              );
-              return (
-                <li key={doc.id}>
-                  <Link href={`/dashboard/${doc.id}`}>
-                    <Card className="flex h-full flex-col gap-2 transition-colors hover:bg-line/30">
-                      <div className="flex items-center justify-between">
-                        <span className="text-ink">{doc.filename}</span>
-                        <span className="font-mono text-sm text-ink-muted">
-                          {doc.status}
-                        </span>
-                      </div>
-                      {docMastery !== null && <MasteryBar score={docMastery} />}
-                    </Card>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="text-sm text-ink-muted">No documents uploaded yet.</p>
-        )}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-ink">Your materials</h2>
+          <DocumentUpload collapsedByDefault />
+        </div>
+        <ul className="flex flex-col gap-3">
+          {documents!.map((doc) => {
+            const docMastery = averageMastery(
+              conceptsByDocument.get(doc.id) ?? [],
+            );
+            return (
+              <li key={doc.id}>
+                <MaterialCard
+                  id={doc.id}
+                  filename={doc.filename}
+                  status={doc.status}
+                  mastery={docMastery}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </main>
   );

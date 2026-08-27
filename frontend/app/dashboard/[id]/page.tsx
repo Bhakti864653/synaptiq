@@ -91,7 +91,7 @@ export default async function DocumentPage({
     });
   }
 
-  if (document.filename === SAMPLE_FILENAME) {
+  if (user.user_metadata?.is_demo === true && document.filename === SAMPLE_FILENAME) {
     tabs.push({
       id: "forward-pass",
       label: "Forward Pass",
@@ -106,10 +106,15 @@ export default async function DocumentPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <Link href="/dashboard" className="w-fit text-sm text-ink-muted hover:text-ink">
-        &larr; Back to your materials
-      </Link>
-      <h1 className="text-2xl font-semibold text-ink">{document.filename}</h1>
+      <div className="gradient-hero rounded-2xl p-6">
+        <Link
+          href="/dashboard"
+          className="w-fit text-sm text-ink-muted hover:text-ink"
+        >
+          &larr; Back to your materials
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold text-ink">{document.filename}</h1>
+      </div>
 
       {document.status === "error" && (
         <p className="text-sm text-weak">

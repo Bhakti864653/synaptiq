@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import MasteryBar from "@/components/MasteryBar";
 import Button from "@/components/Button";
+import Card from "@/components/Card";
 import VoiceButton from "@/components/VoiceButton";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import { matchSpokenAnswer } from "@/lib/matchSpokenAnswer";
@@ -268,7 +269,7 @@ export default function QuizView({
   return (
     <div className="flex flex-col gap-6">
       {concepts.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-ink">Concepts</h2>
           {concepts.map((c) => (
             <MasteryBar
@@ -277,7 +278,7 @@ export default function QuizView({
               score={masteryByConcept.get(c.id) ?? 0}
             />
           ))}
-        </div>
+        </Card>
       )}
 
       {status === "processed" && (
@@ -287,7 +288,7 @@ export default function QuizView({
       )}
 
       {status === "quiz_ready" && questions.length > 0 && (
-        <div className="flex flex-col gap-6">
+        <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Diagnostic quiz</h2>
           {questions.map((q) => (
             <QuestionBlock
@@ -311,7 +312,7 @@ export default function QuizView({
               {generating ? "Regenerating..." : "Regenerate quiz"}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {status === "quiz_ready" && !practiceQuestions && (
@@ -321,7 +322,7 @@ export default function QuizView({
       )}
 
       {practiceQuestions && (
-        <div className="flex flex-col gap-6">
+        <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Practice session</h2>
           {practiceQuestions.map((q) => (
             <QuestionBlock
@@ -345,7 +346,7 @@ export default function QuizView({
               Done
             </Button>
           )}
-        </div>
+        </Card>
       )}
 
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}

@@ -70,6 +70,55 @@ def get_user_id(authorization: str | None) -> str:
     return result.user.id
 
 
+@router.delete("/documents/{document_id}")
+def delete_document(
+    document_id: str, authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    doc_result = (
+        admin.table("documents")
+        .select("*")
+        .eq("id", document_id)
+        .maybe_single()
+        .execute()
+    )
+    document = doc_result.data if doc_result else None
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if document["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Not your document")
+
+    concept_ids = [
+        c["id"]
+        for c in (
+            admin.table("concepts")
+            .select("id")
+            .eq("document_id", document_id)
+            .execute()
+            .data
+            or []
+        )
+    ]
+
+    # Children before parents, mirroring DEMO_TABLES_IN_DELETE_ORDER in demo.py.
+    if concept_ids:
+        admin.table("quiz_responses").delete().in_("concept_id", concept_ids).execute()
+        admin.table("concept_mastery").delete().in_(
+            "concept_id", concept_ids
+        ).execute()
+    admin.table("quiz_questions").delete().eq("document_id", document_id).execute()
+    admin.table("flashcards").delete().eq("document_id", document_id).execute()
+    admin.table("concepts").delete().eq("document_id", document_id).execute()
+    admin.table("document_chunks").delete().eq("document_id", document_id).execute()
+
+    admin.storage.from_("study-materials").remove([document["storage_path"]])
+    admin.table("documents").delete().eq("id", document_id).execute()
+
+    return {"status": "deleted"}
+
+
 @router.post("/documents/{document_id}/process")
 def process_document(
     document_id: str, authorization: str | None = Header(default=None)

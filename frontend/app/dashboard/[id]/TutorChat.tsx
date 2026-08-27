@@ -6,6 +6,7 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import Card from "@/components/Card";
 import VoiceButton from "@/components/VoiceButton";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -77,7 +78,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-ink">Ask the tutor</h2>
       <div className="flex flex-col gap-3">
         {messages.map((m, i) => (
@@ -108,6 +109,6 @@ export default function TutorChat({ documentId }: { documentId: string }) {
         </Button>
       </form>
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
-    </div>
+    </Card>
   );
 }

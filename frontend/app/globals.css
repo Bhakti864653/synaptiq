@@ -3,35 +3,37 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --paper: #ffffff;
+  --paper: #fafafa;
   --surface: #ffffff;
   --ink: #191919;
   --ink-muted: #787774;
   --line: #e9e9e7;
-  --brand: #2383e2;
+  --brand: #6366f1;
   --brand-ink: #ffffff;
-  --weak: #c0392b;
-  --growing: #c98a1e;
-  --mastered: #1f7a5c;
+  --weak: #ef4444;
+  --growing: #fbbf24;
+  --mastered: #f59e0b;
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
+  --accent-2: #f59e0b;
 }
 
 .dark {
-  --paper: #191919;
-  --surface: #191919;
+  --paper: #0f0f1a;
+  --surface: #1a1a2e;
   --ink: #d4d4d4;
   --ink-muted: #999999;
   --line: #2f2f2f;
-  --brand: #529cca;
-  --brand-ink: #191919;
-  --weak: #e2685c;
-  --growing: #dba53c;
-  --mastered: #3fa383;
+  --brand: #818cf8;
+  --brand-ink: #0f0f1a;
+  --weak: #ef4444;
+  --growing: #fbbf24;
+  --mastered: #f59e0b;
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
+  --accent-2: #fbbf24;
 }
 
 @theme inline {
@@ -48,6 +50,7 @@
   --color-series-1: var(--series-1);
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
+  --color-accent-2: var(--accent-2);
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);
 }
@@ -77,4 +80,11 @@ body {
   .animate-fade-up {
     animation: none;
   }
+}
+
+.gradient-hero {
+  background:
+    radial-gradient(900px circle at 15% -10%, color-mix(in srgb, var(--accent-2) 55%, transparent), transparent 60%),
+    radial-gradient(900px circle at 100% 10%, color-mix(in srgb, var(--brand) 55%, transparent), transparent 60%),
+    var(--paper);
 }

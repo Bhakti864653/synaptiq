@@ -1,16 +1,13 @@
 import Link from "next/link";
 import TryDemoButton from "@/components/TryDemoButton";
-import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/Button";
+import GradientShell from "@/components/GradientShell";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col">
-      <div className="flex justify-end p-6">
-        <ThemeToggle />
-      </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-ink">
+    <GradientShell>
+      <main className="flex flex-1 flex-col items-center justify-center gap-5 p-6 text-center">
+        <h1 className="bg-gradient-to-r from-brand to-accent-2 bg-clip-text text-6xl font-bold tracking-tight text-transparent md:text-7xl">
           Synaptiq
         </h1>
         <p className="max-w-md text-base text-ink-muted">
@@ -26,7 +23,7 @@ export default function Home() {
           </Link>
           <TryDemoButton />
         </div>
-      </div>
-    </main>
+      </main>
+    </GradientShell>
   );
 }

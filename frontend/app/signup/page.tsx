@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ErrorMessage from "@/components/ErrorMessage";
-import TopNav from "@/components/TopNav";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
+import GradientShell from "@/components/GradientShell";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -41,18 +41,10 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-[90px]"
-        style={{ background: "var(--brand)" }}
-      />
-      <div className="relative z-10">
-        <TopNav />
-      </div>
+    <GradientShell>
       <main className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold text-ink">Create your account</h1>
+          <h1 className="text-3xl font-bold text-ink">Create your account</h1>
           <p className="text-sm text-ink-muted">
             Upload your first study material in under a minute.
           </p>
@@ -99,6 +91,6 @@ export default function SignupPage() {
           </Link>
         </p>
       </main>
-    </div>
+    </GradientShell>
   );
 }

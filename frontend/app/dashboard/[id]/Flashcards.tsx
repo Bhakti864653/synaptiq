@@ -1,29 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 
 type CardData = { id: string; front: string; back: string };
-
-async function authFetch(path: string, options: RequestInit = {}) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not logged in");
-
-  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-}
 
 export default function Flashcards({ documentId }: { documentId: string }) {
   const [generating, setGenerating] = useState(false);

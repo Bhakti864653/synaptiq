@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { authFetch } from "@/lib/authFetch";
 import MasteryBar from "@/components/MasteryBar";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
@@ -19,22 +19,6 @@ type Question = {
 };
 type Mastery = { concept_id: string; mastery_score: number };
 type Result = { is_correct: boolean; correct_index: number };
-
-async function authFetch(path: string, options: RequestInit = {}) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not logged in");
-
-  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-}
 
 export default function QuizView({
   documentId,
@@ -218,9 +202,11 @@ export default function QuizView({
       )}
 
       {status === "processed" && (
-        <Button onClick={handleGenerate} disabled={generating} className="w-fit">
-          {generating ? "Generating quiz..." : "Generate diagnostic quiz"}
-        </Button>
+        <p className="text-sm text-ink-muted">
+          Head to the Study Guide tab to get started - it'll set up topics
+          for this material and bring you back here if you want the full
+          diagnostic quiz.
+        </p>
       )}
 
       {status === "quiz_ready" && questions.length > 0 && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Input from "@/components/Input";
@@ -10,22 +10,6 @@ import Card from "@/components/Card";
 import VoiceButton from "@/components/VoiceButton";
 
 type Message = { role: "user" | "assistant"; content: string };
-
-async function authFetch(path: string, options: RequestInit = {}) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not logged in");
-
-  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-}
 
 export default function TutorChat({ documentId }: { documentId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);

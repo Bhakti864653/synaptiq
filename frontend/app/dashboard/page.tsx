@@ -63,11 +63,11 @@ export default async function DashboardPage() {
   // a concept nobody has touched yet defaults to the same 0 score and
   // isn't a "weak spot" so much as a "not started yet" one.
   const documentById = new Map((documents ?? []).map((d) => [d.id, d]));
-  const weakSpots = (concepts ?? [])
+  const allWeakSpots = (concepts ?? [])
     .map((c) => ({ ...c, score: masteryByConceptId.get(c.id) ?? 0 }))
     .filter((c) => c.score > 0 && c.score < 60)
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 3);
+    .sort((a, b) => a.score - b.score);
+  const weakSpots = allWeakSpots.slice(0, 3);
 
   if (!isReturningUser) {
     return (
@@ -140,6 +140,14 @@ export default async function DashboardPage() {
               );
             })}
           </ul>
+          {allWeakSpots.length > weakSpots.length && (
+            <Link
+              href="/dashboard/weak-spots"
+              className="self-start text-xs text-ink-muted hover:text-ink"
+            >
+              See all {allWeakSpots.length} &rarr;
+            </Link>
+          )}
         </Card>
       )}
 

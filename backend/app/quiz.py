@@ -287,6 +287,122 @@ def generate_practice(
     return {"questions": created}
 
 
+GLOBAL_PRACTICE_LIMIT = 5
+
+
+@router.post("/practice")
+def generate_global_practice(authorization: str | None = Header(default=None)):
+    """Practice across every document at once, not just one - pools the
+    user's weakest concepts regardless of which material they came from."""
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    concepts = (
+        admin.table("concepts")
+        .select("id, name, document_id")
+        .eq("user_id", user_id)
+        .execute()
+        .data
+        or []
+    )
+    if not concepts:
+        raise HTTPException(
+            status_code=400,
+            detail="Upload some material first so there are concepts to practice.",
+        )
+
+    concept_ids = [c["id"] for c in concepts]
+    mastery_rows = (
+        admin.table("concept_mastery")
+        .select("concept_id, mastery_score")
+        .in_("concept_id", concept_ids)
+        .execute()
+        .data
+        or []
+    )
+    mastery_by_concept = {m["concept_id"]: m["mastery_score"] for m in mastery_rows}
+
+    weak_concepts = sorted(
+        concepts, key=lambda c: mastery_by_concept.get(c["id"], 0)
+    )[:GLOBAL_PRACTICE_LIMIT]
+
+    by_document: dict[str, list[dict]] = {}
+    for c in weak_concepts:
+        by_document.setdefault(c["document_id"], []).append(c)
+
+    documents = (
+        admin.table("documents")
+        .select("id, filename")
+        .in_("id", list(by_document.keys()))
+        .execute()
+        .data
+        or []
+    )
+    filename_by_document = {d["id"]: d["filename"] for d in documents}
+
+    client = get_groq_client()
+    created = []
+    for document_id, doc_concepts in by_document.items():
+        material = _get_material(admin, document_id)
+        concept_by_name = {c["name"]: c for c in doc_concepts}
+
+        try:
+            completion = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": PRACTICE_PROMPT
+                        % (", ".join(concept_by_name.keys()), material),
+                    }
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.5,
+            )
+            parsed = json.loads(completion.choices[0].message.content)
+            questions_data = parsed["questions"]
+        except Exception:
+            # One document's generation failing shouldn't sink the whole
+            # cross-document batch - just skip it and use what did work.
+            continue
+
+        for item in questions_data:
+            concept = concept_by_name.get(item["concept_name"])
+            if not concept:
+                continue
+
+            question = (
+                admin.table("quiz_questions")
+                .insert(
+                    {
+                        "concept_id": concept["id"],
+                        "document_id": document_id,
+                        "user_id": user_id,
+                        "question_text": item["question"],
+                        "options": item["options"],
+                        "correct_index": item["correct_index"],
+                    }
+                )
+                .execute()
+                .data[0]
+            )
+            created.append(
+                {
+                    **question,
+                    "concept_name": concept["name"],
+                    "document_filename": filename_by_document.get(document_id, ""),
+                }
+            )
+
+    if not created:
+        raise HTTPException(
+            status_code=502,
+            detail="Couldn't generate practice questions right now. Please try again.",
+        )
+
+    return {"questions": created}
+
+
 class QuizAnswer(BaseModel):
     question_id: str
     selected_index: int

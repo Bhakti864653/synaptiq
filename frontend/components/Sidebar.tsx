@@ -4,10 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/ask", label: "Ask a Question" },
-  { href: "/dashboard/progress", label: "Progress" },
+const mainLinks = [
+  { href: "/dashboard", label: "Study Materials" },
+  { href: "/dashboard/practice", label: "Practice" },
+  { href: "/dashboard/weak-spots", label: "Weak Spots" },
+  { href: "/dashboard/ask", label: "Ask a Tutor" },
+  { href: "/dashboard/progress", label: "Progress/History" },
+];
+
+const utilityLinks = [
   { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
@@ -79,7 +84,7 @@ export default function Sidebar() {
       >
         <HamburgerIcon />
       </button>
-      {links.map((link) => {
+      {mainLinks.map((link) => {
         const isActive =
           link.href === "/dashboard"
             ? pathname === "/dashboard"
@@ -98,6 +103,25 @@ export default function Sidebar() {
           </Link>
         );
       })}
+
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-line/60 pt-2">
+        {utilityLinks.map((link) => {
+          const isActive = pathname.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
+                isActive
+                  ? "text-brand font-medium"
+                  : "text-ink-muted/70 hover:text-ink-muted"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

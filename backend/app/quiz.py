@@ -178,7 +178,20 @@ def generate_quiz(
     material = _get_material(admin, document_id)
     created_count = create_quiz_from_material(admin, document_id, user_id, material)
 
-    return {"status": "quiz_ready", "concept_count": created_count}
+    questions = (
+        admin.table("quiz_questions")
+        .select("id, concept_id, question_text, options")
+        .eq("document_id", document_id)
+        .execute()
+        .data
+        or []
+    )
+
+    return {
+        "status": "quiz_ready",
+        "concept_count": created_count,
+        "questions": questions,
+    }
 
 
 WEAK_CONCEPT_LIMIT = 3

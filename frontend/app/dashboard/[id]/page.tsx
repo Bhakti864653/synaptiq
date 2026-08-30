@@ -55,31 +55,9 @@ export default async function DocumentPage({
         .in("concept_id", conceptIds)
     : { data: [] };
 
-  const tabs = [
-    {
-      id: "quiz",
-      label: "Quiz",
-      content: (
-        <QuizView
-          documentId={document.id}
-          status={document.status}
-          concepts={concepts ?? []}
-          questions={questions ?? []}
-          mastery={mastery ?? []}
-        />
-      ),
-    },
-  ];
+  const tabs = [];
 
   if (document.status === "processed" || document.status === "quiz_ready") {
-    tabs.push({
-      id: "tutor",
-      label: "Tutor",
-      content: <TutorChat documentId={document.id} />,
-    });
-  }
-
-  if (document.status === "quiz_ready") {
     tabs.push({
       id: "study-guide",
       label: "Study Guide",
@@ -91,6 +69,31 @@ export default async function DocumentPage({
         />
       ),
     });
+  }
+
+  tabs.push({
+    id: "quiz",
+    label: "Quiz",
+    content: (
+      <QuizView
+        documentId={document.id}
+        status={document.status}
+        concepts={concepts ?? []}
+        questions={questions ?? []}
+        mastery={mastery ?? []}
+      />
+    ),
+  });
+
+  if (document.status === "processed" || document.status === "quiz_ready") {
+    tabs.push({
+      id: "tutor",
+      label: "Tutor",
+      content: <TutorChat documentId={document.id} />,
+    });
+  }
+
+  if (document.status === "quiz_ready") {
     tabs.push({
       id: "flashcards",
       label: "Flashcards",

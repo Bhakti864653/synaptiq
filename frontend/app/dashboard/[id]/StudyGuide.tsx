@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import { masteryColorVar } from "@/lib/mastery";
 import ErrorMessage from "@/components/ErrorMessage";
@@ -10,6 +10,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import QuestionBlock from "@/components/QuestionBlock";
+import StudySetup from "./StudySetup";
 
 type Concept = {
   id: string;
@@ -29,30 +30,14 @@ type Result = { is_correct: boolean; correct_index: number };
 
 const PASS_THRESHOLD = 80;
 
-async function authFetch(path: string, options: RequestInit = {}) {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not logged in");
-
-  return fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
-}
-
 function TopicBody({
   documentId,
   concept,
-  onPassed,
+  onAdvance,
 }: {
   documentId: string;
   concept: Concept;
-  onPassed: () => void;
+  onAdvance: () => void;
 }) {
   const router = useRouter();
   const [guide, setGuide] = useState<{ summary: string; excerpt: string } | null>(
@@ -156,7 +141,7 @@ function TopicBody({
       const pct = Math.round((100 * correct) / questions.length);
       setScorePct(pct);
       router.refresh();
-      if (pct >= PASS_THRESHOLD) onPassed();
+      if (pct >= PASS_THRESHOLD) onAdvance();
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: submitQuiz });
     } finally {
@@ -223,12 +208,25 @@ function TopicBody({
               ) : (
                 <>
                   <p className="font-medium text-weak">
-                    You got {scorePct}% — need {PASS_THRESHOLD}% to unlock the next
-                    topic.
+                    You scored {scorePct}% — we recommend reviewing before moving
+                    on.
                   </p>
-                  <Button onClick={startQuiz} disabled={generating} className="w-fit">
-                    {generating ? "Preparing quiz..." : "Try again"}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      onClick={startQuiz}
+                      disabled={generating}
+                      className="w-fit"
+                    >
+                      {generating ? "Preparing quiz..." : "Try again"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={onAdvance}
+                      className="w-fit"
+                    >
+                      Continue anyway
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
@@ -348,32 +346,36 @@ export default function StudyGuide({
     mastery.map((m) => [m.concept_id, m.mastery_score]),
   );
 
-  // Walk front-to-back and stop at the first not-yet-passed topic - robust
-  // even after the study-plan endpoint reorders not-yet-passed topics,
-  // since already-passed topics are never moved and so always stay a
-  // contiguous, unbroken prefix.
-  let unlockedUpTo = 0;
+  // Walk front-to-back and stop at the first not-yet-passed topic - purely
+  // to pick which topic is "recommended next" and to badge topics reached
+  // out of order. Nothing below is actually disabled - a low score is a
+  // recommendation to review, never a hard block on moving forward.
+  let recommendedUpTo = 0;
   for (let i = 1; i < concepts.length; i++) {
     if ((masteryByConcept.get(concepts[i - 1].id) ?? 0) >= PASS_THRESHOLD) {
-      unlockedUpTo = i;
+      recommendedUpTo = i;
     } else {
       break;
     }
   }
 
   const [openId, setOpenId] = useState<string | null>(
-    concepts[unlockedUpTo]?.id ?? null,
+    concepts[recommendedUpTo]?.id ?? null,
   );
+  // Concepts the user chose "Continue anyway" on this session, so they no
+  // longer show a review nudge even though their score is still < 80%.
+  const [advancedIds, setAdvancedIds] = useState<Set<string>>(new Set());
   const [plan, setPlan] = useState<{
-    days_until_exam: number;
+    days_until_exam?: number;
     minutesByConcept: Record<string, number>;
   } | null>(null);
 
   if (concepts.length === 0) {
     return (
-      <p className="text-sm text-ink-muted">
-        Generate the diagnostic quiz first so there are topics to study.
-      </p>
+      <StudySetup
+        documentId={documentId}
+        onReady={(minutesByConcept) => setPlan({ minutesByConcept })}
+      />
     );
   }
 
@@ -382,7 +384,7 @@ export default function StudyGuide({
       <h2 className="text-lg font-semibold text-ink">Study Guide</h2>
 
       <StudyPlanForm documentId={documentId} onPlanned={setPlan} />
-      {plan && (
+      {plan?.days_until_exam !== undefined && (
         <p className="text-sm text-ink-muted">
           {plan.days_until_exam} day{plan.days_until_exam === 1 ? "" : "s"} until
           your exam — topics below are ordered by urgency.
@@ -391,49 +393,56 @@ export default function StudyGuide({
 
       {concepts.map((c, i) => {
         const score = masteryByConcept.get(c.id) ?? 0;
-        const locked = i > unlockedUpTo && score < PASS_THRESHOLD;
+        // score === 0 is ambiguous (never attempted vs. a genuine 0%
+        // attempt), and "never attempted" is by far the common case for a
+        // topic reached out of order - so only nudge review for a topic
+        // that shows real, if partial, evidence of an attempt.
+        const reviewRecommended =
+          i > recommendedUpTo &&
+          score > 0 &&
+          score < PASS_THRESHOLD &&
+          !advancedIds.has(c.id);
         const isOpen = openId === c.id;
         const minutes = plan?.minutesByConcept[c.id];
 
         return (
           <Card key={c.id} className="flex flex-col gap-3">
             <button
-              onClick={() => !locked && setOpenId(isOpen ? null : c.id)}
-              disabled={locked}
-              className="flex w-full items-center justify-between gap-3 text-left disabled:cursor-not-allowed"
+              onClick={() => setOpenId(isOpen ? null : c.id)}
+              className="flex w-full items-center justify-between gap-3 text-left"
             >
-              <span className={locked ? "text-ink-muted" : "text-ink"}>
+              <span className="text-ink">
                 {i + 1}. {c.name}
               </span>
               <span className="flex items-center gap-2 text-xs text-ink-muted">
-                {locked ? (
-                  "Locked"
-                ) : (
-                  <>
-                    {minutes !== undefined && (
-                      <span className="font-mono">{formatMinutes(minutes)}</span>
-                    )}
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: masteryColorVar(score) }}
-                    />
-                    {score}%
-                  </>
+                {minutes !== undefined && (
+                  <span className="font-mono">{formatMinutes(minutes)}</span>
+                )}
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: masteryColorVar(score) }}
+                />
+                {score}%
+                {reviewRecommended && (
+                  <span className="rounded-full bg-weak/10 px-2 py-0.5 font-medium text-weak">
+                    Review recommended
+                  </span>
                 )}
               </span>
             </button>
 
-            {locked && (
+            {reviewRecommended && !isOpen && (
               <p className="text-xs text-ink-muted">
-                Finish "{concepts[i - 1]?.name}" with {PASS_THRESHOLD}%+ to unlock.
+                You scored {score}% here - come back to review anytime.
               </p>
             )}
 
-            {!locked && isOpen && (
+            {isOpen && (
               <TopicBody
                 documentId={documentId}
                 concept={c}
-                onPassed={() => {
+                onAdvance={() => {
+                  setAdvancedIds((prev) => new Set(prev).add(c.id));
                   const next = concepts[i + 1];
                   if (next) setOpenId(next.id);
                 }}

@@ -1,11 +1,18 @@
 import json
 from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from .documents import get_user_id
-from .quiz import GROQ_MODEL, _get_material, _get_owned_document, get_groq_client
+from .quiz import (
+    GROQ_MODEL,
+    _get_material,
+    _get_owned_document,
+    create_quiz_from_material,
+    get_groq_client,
+)
 from .supabase_client import get_admin_client
 
 router = APIRouter()
@@ -56,6 +63,79 @@ Study material:
 %s
 ---
 """
+
+
+def _weighted_minutes(
+    concepts: list[dict], mastery_by_concept: dict, total_minutes: int
+) -> dict:
+    """Splits a time budget across concepts, giving weaker concepts more
+    time (a nearly-mastered concept still gets a light MIN_WEIGHT review
+    slot rather than zero)."""
+    weighted = [
+        (c["id"], max(100 - mastery_by_concept.get(c["id"], 0), MIN_WEIGHT))
+        for c in concepts
+    ]
+    total_weight = sum(w for _, w in weighted) or 1
+    return {
+        concept_id: round(total_minutes * weight / total_weight)
+        for concept_id, weight in weighted
+    }
+
+
+class StudySetupRequest(BaseModel):
+    minutes_available: int
+
+
+@router.post("/documents/{document_id}/study-setup")
+def study_setup(
+    document_id: str,
+    body: StudySetupRequest,
+    authorization: str | None = Header(default=None),
+):
+    """First-time Study Guide setup for a document: extracts topics from the
+    material if this is the first visit, then splits the given time budget
+    across them - evenly if the student is starting from zero (no mastery
+    signal exists yet), weighted toward weaker topics if they've already
+    taken the diagnostic quiz."""
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    document = _get_owned_document(admin, document_id, user_id)
+
+    if document["status"] == "processed":
+        material = _get_material(admin, document_id)
+        create_quiz_from_material(admin, document_id, user_id, material)
+
+    concepts = (
+        admin.table("concepts")
+        .select("id, name, order_index")
+        .eq("document_id", document_id)
+        .order("order_index")
+        .execute()
+        .data
+        or []
+    )
+    if not concepts:
+        raise HTTPException(
+            status_code=400, detail="No topics could be found in this material."
+        )
+
+    concept_ids = [c["id"] for c in concepts]
+    mastery_rows = (
+        admin.table("concept_mastery")
+        .select("concept_id, mastery_score")
+        .in_("concept_id", concept_ids)
+        .execute()
+        .data
+        or []
+    )
+    mastery_by_concept = {m["concept_id"]: m["mastery_score"] for m in mastery_rows}
+
+    minutes_by_concept = _weighted_minutes(
+        concepts, mastery_by_concept, body.minutes_available
+    )
+
+    return {"minutes_by_concept": minutes_by_concept}
 
 
 class StudyPlanRequest(BaseModel):
@@ -110,28 +190,20 @@ def build_study_plan(
     days_until_exam = max((body.exam_date - today).days, 1)
     total_minutes = round(days_until_exam * body.hours_per_day * 60)
 
-    weighted = [
-        {
-            "concept": c,
-            "weight": max(100 - mastery_by_concept.get(c["id"], 0), MIN_WEIGHT),
-        }
-        for c in remaining
-    ]
-    weighted.sort(key=lambda w: w["weight"], reverse=True)
-    total_weight = sum(w["weight"] for w in weighted) or 1
+    minutes_by_concept = _weighted_minutes(remaining, mastery_by_concept, total_minutes)
+    remaining.sort(key=lambda c: minutes_by_concept[c["id"]], reverse=True)
 
     plan = []
     next_index = len(passed)
-    for w in weighted:
-        minutes = round(total_minutes * w["weight"] / total_weight)
+    for c in remaining:
         admin.table("concepts").update({"order_index": next_index}).eq(
-            "id", w["concept"]["id"]
+            "id", c["id"]
         ).execute()
         plan.append(
             {
-                "concept_id": w["concept"]["id"],
-                "name": w["concept"]["name"],
-                "minutes": minutes,
+                "concept_id": c["id"],
+                "name": c["name"],
+                "minutes": minutes_by_concept[c["id"]],
             }
         )
         next_index += 1
@@ -151,33 +223,6 @@ def _get_owned_concept(admin, document_id: str, concept_id: str) -> dict:
     if not concept or concept["document_id"] != document_id:
         raise HTTPException(status_code=404, detail="Topic not found for this document")
     return concept
-
-
-def _assert_unlocked(admin, document_id: str, concept_id: str) -> None:
-    siblings = (
-        admin.table("concepts")
-        .select("id, order_index")
-        .eq("document_id", document_id)
-        .order("order_index")
-        .execute()
-        .data
-        or []
-    )
-    position = next((i for i, c in enumerate(siblings) if c["id"] == concept_id), None)
-    if position is None or position == 0:
-        return
-
-    prev_id = siblings[position - 1]["id"]
-    prev_mastery = (
-        admin.table("concept_mastery")
-        .select("mastery_score")
-        .eq("concept_id", prev_id)
-        .maybe_single()
-        .execute()
-        .data
-    )
-    if not prev_mastery or prev_mastery["mastery_score"] < PASS_THRESHOLD:
-        raise HTTPException(status_code=400, detail="Complete the previous topic first.")
 
 
 @router.post("/documents/{document_id}/concepts/{concept_id}/guide")
@@ -231,7 +276,6 @@ def generate_topic_quiz(
 
     _get_owned_document(admin, document_id, user_id)
     concept = _get_owned_concept(admin, document_id, concept_id)
-    _assert_unlocked(admin, document_id, concept_id)
 
     # Clear any prior attempt so mastery_score (which averages over ALL
     # quiz_responses ever recorded for a concept) reflects only the fresh

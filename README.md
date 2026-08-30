@@ -1,6 +1,6 @@
 # Synaptiq
 
-An adaptive AI study platform: upload your own study material, take a diagnostic quiz, and get a personalized path back through the concepts you're actually weak on - practice questions, an AI tutor grounded only in your material, an exam-mode study plan, and spaced-repetition flashcards.
+An adaptive AI study platform: upload your own study material, take a diagnostic quiz, and get a personalized path back through the concepts you're actually weak on - practice questions, an AI tutor grounded only in your material, a guided Study Guide that unlocks topics as you pass them, and spaced-repetition flashcards.
 
 **Live app:** https://synaptiq-eta.vercel.app
 **Backend API:** https://synaptiq-api-phbj.onrender.com
@@ -18,7 +18,7 @@ An adaptive AI study platform: upload your own study material, take a diagnostic
 **Adaptive study loop**
 - **Adaptive practice** - generates new questions targeting your current weakest concepts, not a random resample
 - **AI tutor** - answers questions grounded only in your uploaded material (told explicitly not to use outside knowledge, and to say so honestly when the material doesn't cover something), with the last 10 turns of conversation history kept for context
-- **Exam Mode** - give it an exam date and hours/day available, and it produces a mastery-weighted time allocation across concepts (a pure algorithm, no AI call - low mastery gets more time, but every concept gets at least a light review pass)
+- **Study Guide** - a guided, sequential course through your document's topics: each topic shows an AI-written explanation plus a real verbatim excerpt from your own material, then a 5-question quiz - score 80%+ to unlock the next topic, or retry with a fresh set of questions
 - **Flashcards** with real SM-2 spaced repetition scheduling (the same algorithm behind Anki), not a fixed review interval
 
 **Everything else**

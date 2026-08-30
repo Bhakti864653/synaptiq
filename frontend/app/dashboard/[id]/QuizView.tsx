@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import MasteryBar from "@/components/MasteryBar";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
-import VoiceButton from "@/components/VoiceButton";
+import QuestionBlock from "@/components/QuestionBlock";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
-import { matchSpokenAnswer } from "@/lib/matchSpokenAnswer";
 import ErrorMessage from "@/components/ErrorMessage";
 
 type Concept = { id: string; name: string };
@@ -35,69 +34,6 @@ async function authFetch(path: string, options: RequestInit = {}) {
       Authorization: `Bearer ${session.access_token}`,
     },
   });
-}
-
-function QuestionBlock({
-  question,
-  selected,
-  result,
-  onSelect,
-}: {
-  question: Question;
-  selected: number | undefined;
-  result: Result | undefined;
-  onSelect: (index: number) => void;
-}) {
-  const [voiceHint, setVoiceHint] = useState<string | null>(null);
-
-  function handleVoiceAnswer(transcript: string) {
-    const index = matchSpokenAnswer(transcript, question.options);
-    if (index === null) {
-      setVoiceHint(`Didn't catch that — try saying the letter, like "B".`);
-      return;
-    }
-    setVoiceHint(null);
-    onSelect(index);
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-ink">{question.question_text}</p>
-        {!result && <VoiceButton onText={handleVoiceAnswer} />}
-      </div>
-      {voiceHint && <p className="text-xs text-ink-muted">{voiceHint}</p>}
-      {question.options.map((option, i) => (
-        <label
-          key={i}
-          className={`flex items-center gap-2 ${
-            result && i === result.correct_index
-              ? "font-medium text-mastered"
-              : result && i === selected && !result.is_correct
-                ? "text-weak"
-                : "text-ink"
-          }`}
-        >
-          <input
-            type="radio"
-            name={question.id}
-            checked={selected === i}
-            disabled={!!result}
-            onChange={() => onSelect(i)}
-            className="accent-brand"
-          />
-          {option}
-        </label>
-      ))}
-      {result && (
-        <p
-          className={`text-sm font-medium ${result.is_correct ? "text-mastered" : "text-weak"}`}
-        >
-          {result.is_correct ? "Correct" : "Incorrect"}
-        </p>
-      )}
-    </div>
-  );
 }
 
 export default function QuizView({
@@ -297,6 +233,7 @@ export default function QuizView({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              voice
             />
           ))}
           <div className="flex items-center gap-4">
@@ -331,6 +268,7 @@ export default function QuizView({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              voice
             />
           ))}
           {practiceQuestions.some((q) => !results[q.id]) ? (

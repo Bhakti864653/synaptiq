@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import ExamPlan from "./ExamPlan";
 import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
+import StudyGuide from "./StudyGuide";
 import TutorChat from "./TutorChat";
 import DocumentTabs from "./DocumentTabs";
 import ForwardPassDemo from "./ForwardPassDemo";
@@ -38,8 +38,9 @@ export default async function DocumentPage({
 
   const { data: concepts } = await supabase
     .from("concepts")
-    .select("id, name")
-    .eq("document_id", id);
+    .select("id, name, order_index, summary, excerpt")
+    .eq("document_id", id)
+    .order("order_index");
 
   const { data: questions } = await supabase
     .from("quiz_questions")
@@ -80,9 +81,15 @@ export default async function DocumentPage({
 
   if (document.status === "quiz_ready") {
     tabs.push({
-      id: "exam",
-      label: "Exam Mode",
-      content: <ExamPlan documentId={document.id} />,
+      id: "study-guide",
+      label: "Study Guide",
+      content: (
+        <StudyGuide
+          documentId={document.id}
+          concepts={concepts ?? []}
+          mastery={mastery ?? []}
+        />
+      ),
     });
     tabs.push({
       id: "flashcards",

@@ -122,7 +122,7 @@ def create_quiz_from_material(
     admin.table("concepts").delete().eq("document_id", document_id).execute()
 
     created_count = 0
-    for item in concepts_data:
+    for index, item in enumerate(concepts_data):
         concept = (
             admin.table("concepts")
             .insert(
@@ -130,6 +130,7 @@ def create_quiz_from_material(
                     "document_id": document_id,
                     "user_id": user_id,
                     "name": item["name"],
+                    "order_index": index,
                 }
             )
             .execute()

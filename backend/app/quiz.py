@@ -334,12 +334,42 @@ def submit_quiz(
             }
         )
 
+    # Concepts with the same name across different documents (e.g. the same
+    # "Mitochondria" topic in two uploads) are treated as one topic for
+    # mastery purposes: answering questions about it under either document
+    # updates a single pooled score shared by every matching concept row,
+    # instead of tracking each document's copy separately.
+    concept_groups_seen: set[frozenset[str]] = set()
     mastery_updates = []
     for concept_id in affected_concepts:
+        concept = (
+            admin.table("concepts")
+            .select("name")
+            .eq("id", concept_id)
+            .maybe_single()
+            .execute()
+            .data
+        )
+        sibling_ids = (
+            admin.table("concepts")
+            .select("id")
+            .eq("user_id", user_id)
+            .ilike("name", concept["name"])
+            .execute()
+            .data
+            or []
+        )
+        group_ids = {row["id"] for row in sibling_ids} | {concept_id}
+
+        group_key = frozenset(group_ids)
+        if group_key in concept_groups_seen:
+            continue
+        concept_groups_seen.add(group_key)
+
         responses = (
             admin.table("quiz_responses")
             .select("is_correct")
-            .eq("concept_id", concept_id)
+            .in_("concept_id", list(group_ids))
             .execute()
             .data
             or []
@@ -348,13 +378,15 @@ def submit_quiz(
         correct = sum(1 for r in responses if r["is_correct"])
         score = round(100 * correct / total) if total else 0
 
-        admin.table("concept_mastery").update(
-            {
-                "mastery_score": score,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            }
-        ).eq("concept_id", concept_id).execute()
-
-        mastery_updates.append({"concept_id": concept_id, "mastery_score": score})
+        for group_concept_id in group_ids:
+            admin.table("concept_mastery").update(
+                {
+                    "mastery_score": score,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }
+            ).eq("concept_id", group_concept_id).execute()
+            mastery_updates.append(
+                {"concept_id": group_concept_id, "mastery_score": score}
+            )
 
     return {"mastery_updates": mastery_updates, "results": results}

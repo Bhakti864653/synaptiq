@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
+import { speak, stopSpeaking, speechOutputSupported } from "@/lib/speak";
 import ErrorMessage from "@/components/ErrorMessage";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -15,9 +16,19 @@ export default function TutorChat({ documentId }: { documentId: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [asking, setAsking] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [canSpeak, setCanSpeak] = useState(false);
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
     null,
   );
+
+  // Checked post-mount, not during render - `window` exists as soon as this
+  // client component's function runs in the browser, but not during SSR,
+  // so branching the render on it directly would mismatch the server HTML.
+  useEffect(() => {
+    setCanSpeak(speechOutputSupported());
+  }, []);
 
   async function ask(question: string, history: Message[]) {
     setError(null);
@@ -43,6 +54,10 @@ export default function TutorChat({ documentId }: { documentId: string }) {
         ...nextMessages,
         { role: "assistant", content: result.answer },
       ]);
+      if (voiceMode) {
+        setSpeaking(true);
+        speak(result.answer, () => setSpeaking(false));
+      }
     } catch (e) {
       setError({
         message: friendlyErrorMessage(e),
@@ -50,6 +65,24 @@ export default function TutorChat({ documentId }: { documentId: string }) {
       });
     } finally {
       setAsking(false);
+    }
+  }
+
+  function toggleVoiceMode() {
+    setVoiceMode((prev) => {
+      if (prev) {
+        stopSpeaking();
+        setSpeaking(false);
+      }
+      return !prev;
+    });
+  }
+
+  function handleVoiceText(text: string) {
+    if (voiceMode) {
+      ask(text, messages);
+    } else {
+      setInput((prev) => (prev ? `${prev} ${text}` : text));
     }
   }
 
@@ -63,7 +96,25 @@ export default function TutorChat({ documentId }: { documentId: string }) {
 
   return (
     <Card className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold text-ink">Ask the tutor</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-ink">Ask the tutor</h2>
+        {canSpeak && (
+          <Button
+            type="button"
+            variant={voiceMode ? "primary" : "secondary"}
+            onClick={toggleVoiceMode}
+            className="w-fit"
+          >
+            {voiceMode ? "Voice mode: on" : "Voice mode: off"}
+          </Button>
+        )}
+      </div>
+      {voiceMode && (
+        <p className="text-xs text-ink-muted">
+          Tap the mic and just talk - your question is sent as soon as you
+          stop speaking, and the tutor's answer is read back to you.
+        </p>
+      )}
       <div className="flex flex-col gap-3">
         {messages.map((m, i) => (
           <div
@@ -78,16 +129,36 @@ export default function TutorChat({ documentId }: { documentId: string }) {
           </div>
         ))}
         {asking && <p className="text-sm text-ink-muted">Thinking...</p>}
+        {speaking && (
+          <div className="flex items-center gap-2 self-start text-sm text-ink-muted">
+            Speaking...
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                stopSpeaking();
+                setSpeaking(false);
+              }}
+              className="w-fit px-0"
+            >
+              Stop
+            </Button>
+          </div>
+        )}
       </div>
       <form onSubmit={handleAsk} className="flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about your material..."
+          placeholder={
+            voiceMode
+              ? "Or type here..."
+              : "Ask a question about your material..."
+          }
           disabled={asking}
           className="flex-1"
         />
-        <VoiceButton onText={(text) => setInput((prev) => (prev ? `${prev} ${text}` : text))} />
+        <VoiceButton onText={handleVoiceText} />
         <Button type="submit" disabled={asking || !input.trim()}>
           Ask
         </Button>

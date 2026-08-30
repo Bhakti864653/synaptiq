@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import Card from "@/components/Card";
+import { masteryColorVar } from "@/lib/mastery";
 import DocumentUpload from "./DocumentUpload";
 import MaterialCard from "./MaterialCard";
 
@@ -22,7 +24,7 @@ export default async function DashboardPage() {
 
   const { data: concepts } = await supabase
     .from("concepts")
-    .select("id, document_id");
+    .select("id, document_id, name");
 
   const { data: mastery } = await supabase
     .from("concept_mastery")
@@ -55,6 +57,17 @@ export default async function DashboardPage() {
   const allConceptIds = (concepts ?? []).map((c) => c.id);
   const overallMastery = averageMastery(allConceptIds);
   const isReturningUser = (documents?.length ?? 0) > 0;
+
+  // Surface weak spots unprompted, right on the page a returning user lands
+  // on. Only concepts with real (if low) evidence of an attempt qualify -
+  // a concept nobody has touched yet defaults to the same 0 score and
+  // isn't a "weak spot" so much as a "not started yet" one.
+  const documentById = new Map((documents ?? []).map((d) => [d.id, d]));
+  const weakSpots = (concepts ?? [])
+    .map((c) => ({ ...c, score: masteryByConceptId.get(c.id) ?? 0 }))
+    .filter((c) => c.score > 0 && c.score < 60)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
 
   if (!isReturningUser) {
     return (
@@ -97,6 +110,38 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {weakSpots.length > 0 && (
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-ink">Weak spots to revisit</h2>
+          <ul className="flex flex-col gap-2">
+            {weakSpots.map((c) => {
+              const doc = documentById.get(c.document_id);
+              if (!doc) return null;
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/dashboard/${doc.id}`}
+                    className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-line/40"
+                  >
+                    <span className="text-sm text-ink">
+                      {c.name}
+                      <span className="text-ink-muted"> · {doc.filename}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-ink-muted">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: masteryColorVar(c.score) }}
+                      />
+                      {c.score}%
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

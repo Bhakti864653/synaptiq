@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from .documents import get_user_id
 from .supabase_client import get_admin_client
+from .streaks import record_study_session
 
 router = APIRouter()
 
@@ -289,6 +290,21 @@ def generate_practice(
 class QuizAnswer(BaseModel):
     question_id: str
     selected_index: int
+    confidence: int | None = None  # 1 (guessing) - 5 (certain), optional
+
+
+def _response_points(is_correct: bool, confidence: int | None) -> float:
+    """Score a single response from 0-100. Without a confidence rating this
+    is just the plain binary correct/incorrect signal. With one, a
+    confident correct answer counts as stronger evidence of real mastery
+    than a low-confidence (likely guessed) correct answer, and a confident
+    wrong answer - a real misconception, not a slip - counts more heavily
+    against it than an unsure wrong answer."""
+    if confidence is None:
+        return 100.0 if is_correct else 0.0
+    if is_correct:
+        return 50.0 + 10.0 * confidence
+    return 50.0 - 10.0 * confidence
 
 
 @router.post("/quiz/submit")
@@ -302,14 +318,14 @@ def submit_quiz(
     results = []
 
     for answer in answers:
-        question = (
+        question_result = (
             admin.table("quiz_questions")
             .select("*")
             .eq("id", answer.question_id)
             .maybe_single()
             .execute()
-            .data
         )
+        question = question_result.data if question_result else None
         if not question or question["user_id"] != user_id:
             continue
 
@@ -322,6 +338,7 @@ def submit_quiz(
                 "user_id": user_id,
                 "selected_index": answer.selected_index,
                 "is_correct": is_correct,
+                "confidence": answer.confidence,
             }
         ).execute()
 
@@ -342,14 +359,16 @@ def submit_quiz(
     concept_groups_seen: set[frozenset[str]] = set()
     mastery_updates = []
     for concept_id in affected_concepts:
-        concept = (
+        concept_result = (
             admin.table("concepts")
             .select("name")
             .eq("id", concept_id)
             .maybe_single()
             .execute()
-            .data
         )
+        concept = concept_result.data if concept_result else None
+        if not concept:
+            continue
         sibling_ids = (
             admin.table("concepts")
             .select("id")
@@ -368,15 +387,21 @@ def submit_quiz(
 
         responses = (
             admin.table("quiz_responses")
-            .select("is_correct")
+            .select("is_correct, confidence")
             .in_("concept_id", list(group_ids))
             .execute()
             .data
             or []
         )
         total = len(responses)
-        correct = sum(1 for r in responses if r["is_correct"])
-        score = round(100 * correct / total) if total else 0
+        score = (
+            round(
+                sum(_response_points(r["is_correct"], r["confidence"]) for r in responses)
+                / total
+            )
+            if total
+            else 0
+        )
 
         for group_concept_id in group_ids:
             admin.table("concept_mastery").update(
@@ -388,5 +413,12 @@ def submit_quiz(
             mastery_updates.append(
                 {"concept_id": group_concept_id, "mastery_score": score}
             )
+
+    record_study_session(
+        admin,
+        user_id,
+        questions_count=len(results),
+        correct_count=sum(1 for r in results if r["is_correct"]),
+    )
 
     return {"mastery_updates": mastery_updates, "results": results}

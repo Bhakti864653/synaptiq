@@ -17,12 +17,16 @@ export default function QuestionBlock({
   selected,
   result,
   onSelect,
+  confidence,
+  onConfidence,
   voice = false,
 }: {
   question: Question;
   selected: number | undefined;
   result: Result | undefined;
   onSelect: (index: number) => void;
+  confidence?: number | undefined;
+  onConfidence?: (value: number) => void;
   voice?: boolean;
 }) {
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
@@ -66,6 +70,28 @@ export default function QuestionBlock({
           {option}
         </label>
       ))}
+      {selected !== undefined && !result && onConfidence && (
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-xs text-ink-muted">How confident are you?</span>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onConfidence(n)}
+                aria-label={`Confidence ${n} out of 5`}
+                className={`h-6 w-6 rounded-full border text-xs font-medium transition-colors ${
+                  confidence === n
+                    ? "border-brand bg-brand text-brand-ink"
+                    : "border-line text-ink-muted hover:border-brand"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {result && (
         <p
           className={`text-sm font-medium ${result.is_correct ? "text-mastered" : "text-weak"}`}

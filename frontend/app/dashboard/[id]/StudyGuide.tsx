@@ -48,6 +48,7 @@ function TopicBody({
   const [loadingGuide, setLoadingGuide] = useState(!guide);
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [confidences, setConfidences] = useState<Record<string, number>>({});
   const [results, setResults] = useState<Record<string, Result>>({});
   const [submitted, setSubmitted] = useState(false);
   const [scorePct, setScorePct] = useState<number | null>(null);
@@ -130,6 +131,7 @@ function TopicBody({
       const body = await res.json();
       setQuestions(body.questions);
       setAnswers({});
+      setConfidences({});
       setResults({});
       setSubmitted(false);
       setScorePct(null);
@@ -148,6 +150,7 @@ function TopicBody({
       const payload = questions.map((q) => ({
         question_id: q.id,
         selected_index: answers[q.id] ?? -1,
+        confidence: confidences[q.id] ?? null,
       }));
       const res = await authFetch(`/quiz/submit`, {
         method: "POST",
@@ -255,13 +258,18 @@ function TopicBody({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              confidence={confidences[q.id]}
+              onConfidence={(v) => setConfidences((prev) => ({ ...prev, [q.id]: v }))}
             />
           ))}
 
           {!submitted && (
             <Button
               onClick={submitQuiz}
-              disabled={submitting || Object.keys(answers).length < questions.length}
+              disabled={
+                submitting ||
+                questions.some((q) => confidences[q.id] === undefined)
+              }
               className="w-fit"
             >
               {submitting ? "Submitting..." : "Submit answers"}

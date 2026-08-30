@@ -212,14 +212,14 @@ def build_study_plan(
 
 
 def _get_owned_concept(admin, document_id: str, concept_id: str) -> dict:
-    concept = (
+    result = (
         admin.table("concepts")
         .select("*")
         .eq("id", concept_id)
         .maybe_single()
         .execute()
-        .data
     )
+    concept = result.data if result else None
     if not concept or concept["document_id"] != document_id:
         raise HTTPException(status_code=404, detail="Topic not found for this document")
     return concept

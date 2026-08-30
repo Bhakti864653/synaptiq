@@ -40,6 +40,7 @@ export default function QuizView({
     null,
   );
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [confidences, setConfidences] = useState<Record<string, number>>({});
   const [latestMastery, setLatestMastery] = useState<Mastery[] | null>(null);
   const [practiceQuestions, setPracticeQuestions] = useState<Question[] | null>(
     null,
@@ -74,6 +75,7 @@ export default function QuizView({
       const payload = questions.map((q) => ({
         question_id: q.id,
         selected_index: answers[q.id] ?? -1,
+        confidence: confidences[q.id] ?? null,
       }));
       const res = await authFetch(`/quiz/submit`, {
         method: "POST",
@@ -131,6 +133,7 @@ export default function QuizView({
       const payload = practiceQuestions.map((q) => ({
         question_id: q.id,
         selected_index: answers[q.id] ?? -1,
+        confidence: confidences[q.id] ?? null,
       }));
       const res = await authFetch(`/quiz/submit`, {
         method: "POST",
@@ -219,11 +222,20 @@ export default function QuizView({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              confidence={confidences[q.id]}
+              onConfidence={(v) => setConfidences((prev) => ({ ...prev, [q.id]: v }))}
               voice
             />
           ))}
           <div className="flex items-center gap-4">
-            <Button onClick={handleSubmit} disabled={submitting} className="w-fit">
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                submitting ||
+                questions.some((q) => confidences[q.id] === undefined)
+              }
+              className="w-fit"
+            >
               {submitting ? "Submitting..." : "Submit answers"}
             </Button>
             <Button
@@ -254,13 +266,18 @@ export default function QuizView({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              confidence={confidences[q.id]}
+              onConfidence={(v) => setConfidences((prev) => ({ ...prev, [q.id]: v }))}
               voice
             />
           ))}
           {practiceQuestions.some((q) => !results[q.id]) ? (
             <Button
               onClick={handleSubmitPractice}
-              disabled={submittingPractice}
+              disabled={
+                submittingPractice ||
+                practiceQuestions.some((q) => confidences[q.id] === undefined)
+              }
               className="w-fit"
             >
               {submittingPractice ? "Submitting..." : "Submit answers"}

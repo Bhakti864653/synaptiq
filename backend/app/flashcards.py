@@ -125,14 +125,14 @@ def review_flashcard(
     user_id = get_user_id(authorization)
     admin = get_admin_client()
 
-    card = (
+    card_result = (
         admin.table("flashcards")
         .select("*")
         .eq("id", flashcard_id)
         .maybe_single()
         .execute()
-        .data
     )
+    card = card_result.data if card_result else None
     if not card or card["user_id"] != user_id:
         raise HTTPException(status_code=404, detail="Flashcard not found")
 

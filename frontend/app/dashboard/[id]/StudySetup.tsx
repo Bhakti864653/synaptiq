@@ -32,6 +32,7 @@ export default function StudySetup({
   const [minutesInput, setMinutesInput] = useState("60");
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [confidences, setConfidences] = useState<Record<string, number>>({});
   const [results, setResults] = useState<Record<string, Result>>({});
   // Which action is in flight, if any - lets each button show its own
   // busy label instead of both reacting to one shared flag.
@@ -96,6 +97,7 @@ export default function StudySetup({
       const payload = questions.map((q) => ({
         question_id: q.id,
         selected_index: answers[q.id] ?? -1,
+        confidence: confidences[q.id] ?? null,
       }));
       const res = await authFetch(`/quiz/submit`, {
         method: "POST",
@@ -191,11 +193,15 @@ export default function StudySetup({
               selected={answers[q.id]}
               result={results[q.id]}
               onSelect={(i) => setAnswers((prev) => ({ ...prev, [q.id]: i }))}
+              confidence={confidences[q.id]}
+              onConfidence={(v) => setConfidences((prev) => ({ ...prev, [q.id]: v }))}
             />
           ))}
           <Button
             onClick={submitDiagnostic}
-            disabled={busy !== null || Object.keys(answers).length < questions.length}
+            disabled={
+              busy !== null || questions.some((q) => confidences[q.id] === undefined)
+            }
             className="w-fit"
           >
             {busy === "submit"

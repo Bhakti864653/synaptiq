@@ -265,6 +265,68 @@ def get_or_create_guide(
     return {"summary": summary, "excerpt": excerpt}
 
 
+EXPLAIN_DIFFERENTLY_INSTRUCTIONS = {
+    "simpler": "Explain it again in much simpler terms, as if to someone brand new to the subject - plain words, no jargon.",
+    "analogy": "Explain it again using a single clear analogy or comparison to something from everyday life.",
+    "example": "Explain it again by walking through one concrete, real-world example that shows it in action.",
+}
+
+EXPLAIN_DIFFERENTLY_PROMPT = """You are an expert tutor. A student already read a standard explanation of one topic from their own study material and wants it explained a different way.
+
+Topic: %s
+
+%s
+
+Keep it to 2-4 short sentences, grounded only in the material below - do not introduce facts the material doesn't support. Respond with ONLY the explanation text - no preamble, no markdown, no JSON.
+
+Study material:
+---
+%s
+---
+"""
+
+
+class ExplainDifferentlyRequest(BaseModel):
+    style: Literal["simpler", "analogy", "example"]
+
+
+@router.post("/documents/{document_id}/concepts/{concept_id}/explain-differently")
+def explain_differently(
+    document_id: str,
+    concept_id: str,
+    body: ExplainDifferentlyRequest,
+    authorization: str | None = Header(default=None),
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    _get_owned_document(admin, document_id, user_id)
+    concept = _get_owned_concept(admin, document_id, concept_id)
+    material = _get_material(admin, document_id)
+
+    instruction = EXPLAIN_DIFFERENTLY_INSTRUCTIONS[body.style]
+    client = get_groq_client()
+    try:
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "user",
+                    "content": EXPLAIN_DIFFERENTLY_PROMPT
+                    % (concept["name"], instruction, material),
+                }
+            ],
+            temperature=0.6,
+        )
+        explanation = completion.choices[0].message.content.strip()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Alternate explanation failed: {exc}"
+        )
+
+    return {"explanation": explanation}
+
+
 @router.post("/documents/{document_id}/concepts/{concept_id}/quiz")
 def generate_topic_quiz(
     document_id: str,

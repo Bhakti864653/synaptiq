@@ -56,6 +56,38 @@ function TopicBody({
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
     null,
   );
+  const [altExplanation, setAltExplanation] = useState<string | null>(null);
+  const [loadingAlt, setLoadingAlt] = useState<
+    "simpler" | "analogy" | "example" | null
+  >(null);
+
+  async function explainDifferently(style: "simpler" | "analogy" | "example") {
+    setLoadingAlt(style);
+    setError(null);
+    try {
+      const res = await authFetch(
+        `/documents/${documentId}/concepts/${concept.id}/explain-differently`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ style }),
+        },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Failed (${res.status})`);
+      }
+      const body = await res.json();
+      setAltExplanation(body.explanation);
+    } catch (e) {
+      setError({
+        message: friendlyErrorMessage(e),
+        retry: () => explainDifferently(style),
+      });
+    } finally {
+      setLoadingAlt(null);
+    }
+  }
 
   async function loadGuide() {
     setLoadingGuide(true);
@@ -167,6 +199,43 @@ function TopicBody({
                 </p>
                 <p className="mt-1 text-sm italic text-ink">"{guide.excerpt}"</p>
               </Card>
+
+              {altExplanation && (
+                <Card className="border-l-2 border-l-mastered">
+                  <p className="text-xs font-medium text-ink-muted">
+                    Explained differently
+                  </p>
+                  <p className="mt-1 text-sm text-ink">{altExplanation}</p>
+                </Card>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-ink-muted">Explain it differently:</span>
+                <Button
+                  variant="secondary"
+                  onClick={() => explainDifferently("simpler")}
+                  disabled={loadingAlt !== null}
+                  className="w-fit"
+                >
+                  {loadingAlt === "simpler" ? "Thinking..." : "Simpler"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => explainDifferently("analogy")}
+                  disabled={loadingAlt !== null}
+                  className="w-fit"
+                >
+                  {loadingAlt === "analogy" ? "Thinking..." : "Analogy"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => explainDifferently("example")}
+                  disabled={loadingAlt !== null}
+                  className="w-fit"
+                >
+                  {loadingAlt === "example" ? "Thinking..." : "Real-world example"}
+                </Button>
+              </div>
             </div>
           )}
           {guide && (

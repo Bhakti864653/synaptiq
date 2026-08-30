@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from .ask import router as ask_router
 from .demo import router as demo_router
 from .documents import router as documents_router
 from .flashcards import router as flashcards_router
@@ -45,6 +46,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         content={"detail": "Something went wrong on our end. Please try again."},
     )
 
+app.include_router(ask_router)
 app.include_router(documents_router)
 app.include_router(quiz_router)
 app.include_router(tutor_router)

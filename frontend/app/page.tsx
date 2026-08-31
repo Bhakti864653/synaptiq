@@ -3,7 +3,7 @@ import TryDemoButton from "@/components/TryDemoButton";
 import Button from "@/components/Button";
 import GradientShell from "@/components/GradientShell";
 import LandingIllustration from "@/components/LandingIllustration";
-import Mascot from "@/components/Mascot";
+import LandingMascot from "@/components/LandingMascot";
 
 export default function Home() {
   return (
@@ -11,7 +11,7 @@ export default function Home() {
       <main className="relative flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden p-6 text-center">
         <LandingIllustration />
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <Mascot expression="excited" size={140} className="drop-shadow-xl" />
+          <LandingMascot />
           <h1 className="bg-gradient-to-r from-brand to-accent-2 bg-clip-text pb-2 text-6xl font-bold leading-[1.15] tracking-tight text-transparent md:text-7xl">
             Synaptiq
           </h1>

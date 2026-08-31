@@ -59,12 +59,45 @@ export default function Mascot({
         <circle cx="40" cy="38" r="21" fill={`url(#${bodyGradient})`} />
         <circle cx="80" cy="38" r="21" fill={`url(#${bodyGradient})`} />
         <ellipse cx="60" cy="66" rx="38" ry="32" fill={`url(#${bodyGradient})`} />
-        {/* hemisphere seam - just a hint, not anatomical detail */}
+        {/* hemisphere seam + a few soft fold lines - just enough to read as
+            a brain at a glance, not literal anatomy */}
         <path
           d="M 60 22 Q 56 42 60 66 Q 64 90 60 98"
           stroke="#ffffff"
           strokeOpacity="0.35"
           strokeWidth="2.5"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M 26 30 Q 36 24 44 30"
+          stroke="#ffffff"
+          strokeOpacity="0.3"
+          strokeWidth="2"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M 76 30 Q 84 24 94 30"
+          stroke="#ffffff"
+          strokeOpacity="0.3"
+          strokeWidth="2"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M 30 54 Q 40 50 46 56"
+          stroke="#ffffff"
+          strokeOpacity="0.25"
+          strokeWidth="2"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <path
+          d="M 74 56 Q 80 50 90 54"
+          stroke="#ffffff"
+          strokeOpacity="0.25"
+          strokeWidth="2"
           strokeLinecap="round"
           fill="none"
         />

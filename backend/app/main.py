@@ -12,6 +12,7 @@ from .demo import router as demo_router
 from .documents import router as documents_router
 from .flashcards import router as flashcards_router
 from .quiz import router as quiz_router
+from .reminders import router as reminders_router
 from .streaks import router as streaks_router
 from .study_guide import router as study_guide_router
 from .transcribe import router as transcribe_router
@@ -54,6 +55,7 @@ app.include_router(tutor_router)
 app.include_router(flashcards_router)
 app.include_router(study_guide_router)
 app.include_router(streaks_router)
+app.include_router(reminders_router)
 app.include_router(demo_router)
 app.include_router(transcribe_router)
 

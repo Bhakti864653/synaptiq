@@ -325,13 +325,16 @@ function formatMinutes(minutes: number) {
 
 function StudyPlanForm({
   documentId,
+  initialExamDate,
   onPlanned,
 }: {
   documentId: string;
+  initialExamDate: string | null;
   onPlanned: (plan: { days_until_exam: number; minutesByConcept: Record<string, number> }) => void;
 }) {
   const router = useRouter();
-  const [examDate, setExamDate] = useState("");
+  const [examDate, setExamDate] = useState(initialExamDate ?? "");
+  const [savedExamDate, setSavedExamDate] = useState(initialExamDate);
   const [hoursPerDay, setHoursPerDay] = useState("1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
@@ -360,6 +363,7 @@ function StudyPlanForm({
         minutesByConcept[item.concept_id] = item.minutes;
       }
       onPlanned({ days_until_exam: body.days_until_exam, minutesByConcept });
+      setSavedExamDate(examDate);
       router.refresh();
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: buildPlan });
@@ -405,6 +409,11 @@ function StudyPlanForm({
         Reorders the topics you haven't passed yet by urgency, and estimates time
         per topic. Topics you've already passed stay where they are.
       </p>
+      {savedExamDate && (
+        <p className="text-xs text-mastered">
+          Reminder emails on until {savedExamDate}.
+        </p>
+      )}
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </Card>
   );
@@ -414,10 +423,12 @@ export default function StudyGuide({
   documentId,
   concepts,
   mastery,
+  examDate,
 }: {
   documentId: string;
   concepts: Concept[];
   mastery: Mastery[];
+  examDate: string | null;
 }) {
   const masteryByConcept = new Map(
     mastery.map((m) => [m.concept_id, m.mastery_score]),
@@ -460,7 +471,11 @@ export default function StudyGuide({
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-ink">Study Guide</h2>
 
-      <StudyPlanForm documentId={documentId} onPlanned={setPlan} />
+      <StudyPlanForm
+        documentId={documentId}
+        initialExamDate={examDate}
+        onPlanned={setPlan}
+      />
       {plan?.days_until_exam !== undefined && (
         <p className="text-sm text-ink-muted">
           {plan.days_until_exam} day{plan.days_until_exam === 1 ? "" : "s"} until

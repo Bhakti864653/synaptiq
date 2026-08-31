@@ -1,0 +1,15 @@
+name: Send exam reminders
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reminders endpoint
+        run: |
+          curl --fail -X POST "https://synaptiq-api-phbj.onrender.com/reminders/send" \
+            -H "Authorization: Bearer ${{ secrets.REMINDER_CRON_SECRET }}"

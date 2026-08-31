@@ -28,7 +28,7 @@ export default async function DocumentPage({
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, filename, status, error_message")
+    .select("id, filename, status, error_message, exam_date")
     .eq("id", id)
     .single();
 
@@ -66,6 +66,7 @@ export default async function DocumentPage({
           documentId={document.id}
           concepts={concepts ?? []}
           mastery={mastery ?? []}
+          examDate={document.exam_date}
         />
       ),
     });

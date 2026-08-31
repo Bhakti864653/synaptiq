@@ -172,6 +172,12 @@ def build_study_plan(
             detail="Generate the diagnostic quiz first so there are topics to plan.",
         )
 
+    # Persisted (not just used for this one calculation) so the daily
+    # reminder job can find it later.
+    admin.table("documents").update(
+        {"exam_date": body.exam_date.isoformat()}
+    ).eq("id", document_id).execute()
+
     concept_ids = [c["id"] for c in concepts]
     mastery_rows = (
         admin.table("concept_mastery")

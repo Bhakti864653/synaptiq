@@ -9,6 +9,8 @@ import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
+import { useMascot } from "@/lib/mascotContext";
+import { celebrateFromResults } from "@/lib/mascotMessages";
 
 type Concept = { id: string; name: string };
 type Question = {
@@ -34,6 +36,7 @@ export default function QuizView({
   mastery: Mastery[];
 }) {
   const router = useRouter();
+  const { celebrate } = useMascot();
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
@@ -98,6 +101,7 @@ export default function QuizView({
         return next;
       });
       router.refresh();
+      celebrateFromResults(celebrate, result.results, "the diagnostic quiz");
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: handleSubmit });
     } finally {
@@ -118,6 +122,7 @@ export default function QuizView({
       }
       const result = await res.json();
       setPracticeQuestions(result.questions);
+      celebrate("excited", "Time to practice your weak spots!");
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: handlePractice });
     } finally {
@@ -167,6 +172,7 @@ export default function QuizView({
         return next;
       });
       router.refresh();
+      celebrateFromResults(celebrate, result.results, "practice");
     } catch (e) {
       setError({
         message: friendlyErrorMessage(e),

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
 import MasteryBar from "@/components/MasteryBar";
 import AccuracyTrendChart from "@/components/AccuracyTrendChart";
+import StreakGreeting from "./StreakGreeting";
 
 export default async function ProgressPage() {
   const supabase = await createClient();
@@ -81,6 +82,7 @@ export default async function ProgressPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-6">
+      <StreakGreeting streak={currentStreak} />
       <div className="gradient-hero rounded-2xl p-6">
         <h1 className="text-2xl font-semibold text-ink">Progress</h1>
         <p className="text-sm text-ink-muted">

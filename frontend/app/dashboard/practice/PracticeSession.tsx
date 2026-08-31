@@ -7,6 +7,8 @@ import ErrorMessage from "@/components/ErrorMessage";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
+import { useMascot } from "@/lib/mascotContext";
+import { celebrateFromResults } from "@/lib/mascotMessages";
 
 type Question = {
   id: string;
@@ -19,6 +21,7 @@ type Question = {
 type Result = { is_correct: boolean; correct_index: number };
 
 export default function PracticeSession() {
+  const { celebrate } = useMascot();
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [confidences, setConfidences] = useState<Record<string, number>>({});
@@ -43,6 +46,7 @@ export default function PracticeSession() {
       setAnswers({});
       setConfidences({});
       setResults({});
+      celebrate("excited", "Let's tackle your weakest concepts!");
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: startPractice });
     } finally {
@@ -78,6 +82,7 @@ export default function PracticeSession() {
         };
       }
       setResults(nextResults);
+      celebrateFromResults(celebrate, body.results, "this practice set");
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: submitAnswers });
     } finally {

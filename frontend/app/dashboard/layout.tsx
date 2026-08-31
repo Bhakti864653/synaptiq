@@ -1,5 +1,7 @@
 import TopNav from "@/components/TopNav";
 import Sidebar from "@/components/Sidebar";
+import MascotCompanion from "@/components/MascotCompanion";
+import { MascotProvider } from "@/lib/mascotContext";
 
 export default function DashboardLayout({
   children,
@@ -7,12 +9,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav showLogout />
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1">{children}</div>
+    <MascotProvider>
+      <div className="flex min-h-screen flex-col">
+        <TopNav showLogout />
+        <div className="flex flex-1">
+          <Sidebar />
+          <div className="flex-1">{children}</div>
+        </div>
       </div>
-    </div>
+      <MascotCompanion />
+    </MascotProvider>
   );
 }

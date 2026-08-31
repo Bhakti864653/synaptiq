@@ -11,6 +11,7 @@ import Card from "@/components/Card";
 import Input from "@/components/Input";
 import QuestionBlock from "@/components/QuestionBlock";
 import StudySetup from "./StudySetup";
+import { useMascot } from "@/lib/mascotContext";
 
 type Concept = {
   id: string;
@@ -40,6 +41,7 @@ function TopicBody({
   onAdvance: () => void;
 }) {
   const router = useRouter();
+  const { celebrate } = useMascot();
   const [guide, setGuide] = useState<{ summary: string; excerpt: string } | null>(
     concept.summary && concept.excerpt
       ? { summary: concept.summary, excerpt: concept.excerpt }
@@ -135,6 +137,7 @@ function TopicBody({
       setResults({});
       setSubmitted(false);
       setScorePct(null);
+      celebrate("excited", `Let's see what you know about ${concept.name}!`);
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: startQuiz });
     } finally {
@@ -176,7 +179,20 @@ function TopicBody({
       const pct = Math.round((100 * correct) / questions.length);
       setScorePct(pct);
       router.refresh();
-      if (pct >= PASS_THRESHOLD) onAdvance();
+      if (pct >= PASS_THRESHOLD) {
+        celebrate(
+          "celebrating",
+          pct === 100
+            ? `Perfect score on ${concept.name}!`
+            : `Nice work — ${pct}% on ${concept.name}!`,
+        );
+        onAdvance();
+      } else {
+        celebrate(
+          "encouraging",
+          `${pct}% on ${concept.name} — worth another look, you've got this.`,
+        );
+      }
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: submitQuiz });
     } finally {

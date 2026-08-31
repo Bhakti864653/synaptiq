@@ -99,9 +99,9 @@ body {
   60% { transform: translateY(-6px) scale(1.05) rotate(-3deg); }
   100% { transform: translateY(0) scale(1) rotate(0deg); }
 }
-@keyframes mascot-spark-pulse {
-  0%, 100% { opacity: 0.75; r: 6; }
-  50% { opacity: 1; r: 7.5; }
+@keyframes mascot-spark-twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(15deg); }
 }
 @keyframes mascot-float {
   0%, 100% { transform: translate(0, 0); }
@@ -115,12 +115,12 @@ body {
 .mascot-idle { animation: mascot-breathe 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
 .mascot-excited { animation: mascot-bounce 0.7s ease-in-out infinite; transform-origin: 50% 100%; }
 .mascot-celebrating { animation: mascot-spin-bounce 0.9s ease-in-out infinite; transform-origin: 50% 100%; }
-.mascot-spark { animation: mascot-spark-pulse 1.8s ease-in-out infinite; transform-origin: center; }
+.mascot-spark-twinkle { animation: mascot-spark-twinkle 1.6s ease-in-out infinite; }
 .mascot-float { animation: mascot-float 7s ease-in-out infinite; }
 .mascot-float-slow { animation: mascot-float-slow 9s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mascot-idle, .mascot-excited, .mascot-celebrating, .mascot-spark, .mascot-float, .mascot-float-slow {
+  .mascot-idle, .mascot-excited, .mascot-celebrating, .mascot-spark-twinkle, .mascot-float, .mascot-float-slow {
     animation: none;
   }
 }

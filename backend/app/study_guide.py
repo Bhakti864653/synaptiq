@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .documents import get_user_id
 from .quiz import (
@@ -83,7 +83,7 @@ def _weighted_minutes(
 
 
 class StudySetupRequest(BaseModel):
-    minutes_available: int
+    minutes_available: int = Field(gt=0, le=10_000)
 
 
 @router.post("/documents/{document_id}/study-setup")
@@ -140,7 +140,7 @@ def study_setup(
 
 class StudyPlanRequest(BaseModel):
     exam_date: date
-    hours_per_day: float
+    hours_per_day: float = Field(gt=0, le=24)
 
 
 @router.post("/documents/{document_id}/study-plan")

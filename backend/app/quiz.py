@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Header, HTTPException
 from groq import Groq
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .documents import get_user_id
 from .supabase_client import get_admin_client
@@ -406,7 +406,15 @@ def generate_global_practice(authorization: str | None = Header(default=None)):
 class QuizAnswer(BaseModel):
     question_id: str
     selected_index: int
-    confidence: int | None = None  # 1 (guessing) - 5 (certain), optional
+    confidence: int | None = Field(default=None, ge=1, le=5)
+
+
+def _escape_like(value: str) -> str:
+    """Escapes literal backslash/%/_ so an ilike() call matches the exact
+    string instead of treating those characters as SQL LIKE wildcards - a
+    concept name like "50% Rule" would otherwise fuzzy-match and merge
+    unrelated concepts."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _response_points(is_correct: bool, confidence: int | None) -> float:
@@ -489,7 +497,7 @@ def submit_quiz(
             admin.table("concepts")
             .select("id")
             .eq("user_id", user_id)
-            .ilike("name", concept["name"])
+            .ilike("name", _escape_like(concept["name"]))
             .execute()
             .data
             or []
@@ -511,9 +519,18 @@ def submit_quiz(
         )
         total = len(responses)
         score = (
-            round(
-                sum(_response_points(r["is_correct"], r["confidence"]) for r in responses)
-                / total
+            max(
+                0,
+                min(
+                    100,
+                    round(
+                        sum(
+                            _response_points(r["is_correct"], r["confidence"])
+                            for r in responses
+                        )
+                        / total
+                    ),
+                ),
             )
             if total
             else 0

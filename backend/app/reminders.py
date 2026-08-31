@@ -1,3 +1,4 @@
+import html
 import logging
 import os
 import secrets
@@ -32,9 +33,9 @@ def _send_email(to_email: str, subject: str, html: str) -> None:
 
 def _reminder_email_html(entries: list[dict]) -> str:
     rows = "".join(
-        f"<li><strong>{e['filename']}</strong> — {e['days_left']} "
+        f"<li><strong>{html.escape(e['filename'])}</strong> — {e['days_left']} "
         f"day{'s' if e['days_left'] != 1 else ''} left "
-        f"(exam on {e['exam_date']})</li>"
+        f"(exam on {html.escape(e['exam_date'])})</li>"
         for e in entries
     )
     return (

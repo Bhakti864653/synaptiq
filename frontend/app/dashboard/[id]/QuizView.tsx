@@ -201,12 +201,15 @@ export default function QuizView({
       {concepts.length > 0 && (
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-ink">Concepts</h2>
-          {concepts.map((c) => (
-            <div key={c.id} className="flex flex-col gap-1">
-              <MasteryBar label={c.name} score={masteryByConcept.get(c.id) ?? 0} />
-              <ConceptMasteryHistory conceptId={c.id} />
-            </div>
-          ))}
+          {concepts.map((c) => {
+            const score = masteryByConcept.get(c.id) ?? 0;
+            return (
+              <div key={c.id} className="flex flex-col gap-1">
+                <MasteryBar label={c.name} score={score} />
+                <ConceptMasteryHistory conceptId={c.id} masteryScore={score} />
+              </div>
+            );
+          })}
         </Card>
       )}
 

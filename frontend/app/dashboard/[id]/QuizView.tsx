@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
 import MasteryBar from "@/components/MasteryBar";
+import ConceptMasteryHistory from "@/components/ConceptMasteryHistory";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
@@ -201,11 +202,10 @@ export default function QuizView({
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-ink">Concepts</h2>
           {concepts.map((c) => (
-            <MasteryBar
-              key={c.id}
-              label={c.name}
-              score={masteryByConcept.get(c.id) ?? 0}
-            />
+            <div key={c.id} className="flex flex-col gap-1">
+              <MasteryBar label={c.name} score={masteryByConcept.get(c.id) ?? 0} />
+              <ConceptMasteryHistory conceptId={c.id} />
+            </div>
           ))}
         </Card>
       )}

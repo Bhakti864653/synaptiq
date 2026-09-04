@@ -479,6 +479,75 @@ def _compute_mastery_score(responses: list[dict]) -> int:
     return max(0, min(100, round(total_points / len(responses))))
 
 
+def _mastery_history_points(responses: list[dict]) -> list[dict]:
+    """Turns a concept's quiz responses (each a dict with "answered_at"
+    (an ISO date/datetime string), "is_correct", and "confidence") into a
+    cumulative mastery-over-time series: one point per day that has at
+    least one response, scored using every response up through and
+    including that day - the same rolling window the live mastery score
+    itself is computed from, just sampled at earlier points in time."""
+    responses_by_day: dict[str, list[dict]] = {}
+    for r in responses:
+        day = r["answered_at"][:10]
+        responses_by_day.setdefault(day, []).append(r)
+
+    points = []
+    seen_so_far: list[dict] = []
+    for day in sorted(responses_by_day):
+        seen_so_far.extend(responses_by_day[day])
+        points.append({"date": day, "mastery_score": _compute_mastery_score(seen_so_far)})
+    return points
+
+
+def _pooled_concept_ids(admin, concept_name: str, user_id: str, concept_id: str) -> set[str]:
+    """Same-named concepts across a user's different documents are pooled
+    into one mastery score (see submit_quiz below) - this returns that same
+    pooled set of concept ids for a given concept."""
+    sibling_ids = (
+        admin.table("concepts")
+        .select("id")
+        .eq("user_id", user_id)
+        .ilike("name", _escape_like(concept_name))
+        .execute()
+        .data
+        or []
+    )
+    return {row["id"] for row in sibling_ids} | {concept_id}
+
+
+@router.get("/concepts/{concept_id}/mastery-history")
+def get_mastery_history(
+    concept_id: str, authorization: str | None = Header(default=None)
+):
+    user_id = get_user_id(authorization)
+    admin = get_admin_client()
+
+    concept_result = (
+        admin.table("concepts")
+        .select("name")
+        .eq("id", concept_id)
+        .eq("user_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    concept = concept_result.data if concept_result else None
+    if not concept:
+        raise HTTPException(status_code=404, detail="Concept not found")
+
+    group_ids = _pooled_concept_ids(admin, concept["name"], user_id, concept_id)
+
+    responses = (
+        admin.table("quiz_responses")
+        .select("is_correct, confidence, answered_at")
+        .in_("concept_id", list(group_ids))
+        .execute()
+        .data
+        or []
+    )
+
+    return {"points": _mastery_history_points(responses)}
+
+
 @router.post("/quiz/submit")
 def submit_quiz(
     answers: list[QuizAnswer], authorization: str | None = Header(default=None)
@@ -541,16 +610,7 @@ def submit_quiz(
         concept = concept_result.data if concept_result else None
         if not concept:
             continue
-        sibling_ids = (
-            admin.table("concepts")
-            .select("id")
-            .eq("user_id", user_id)
-            .ilike("name", _escape_like(concept["name"]))
-            .execute()
-            .data
-            or []
-        )
-        group_ids = {row["id"] for row in sibling_ids} | {concept_id}
+        group_ids = _pooled_concept_ids(admin, concept["name"], user_id, concept_id)
 
         group_key = frozenset(group_ids)
         if group_key in concept_groups_seen:

@@ -8,6 +8,19 @@ An adaptive AI study platform: upload your own study material, take a diagnostic
 
 **Try it instantly, no account needed:** click "Try the demo" on the landing page. Every visitor gets their own private, isolated account seeded with a real sample document, run through the actual upload-to-quiz pipeline - not canned/fake data.
 
+<table>
+  <tr>
+    <td width="33%"><img src="screenshots/dashboard.png" alt="Dashboard"><br><sub>Dashboard - study materials and overall mastery at a glance</sub></td>
+    <td width="33%"><img src="screenshots/study-guide.png" alt="Study Guide"><br><sub>Study Guide - exam planner and topic-by-topic explanations</sub></td>
+    <td width="33%"><img src="screenshots/quiz.png" alt="Quiz"><br><sub>Diagnostic quiz - per-concept mastery tracked in real time</sub></td>
+  </tr>
+  <tr>
+    <td width="33%"><img src="screenshots/tutor.png" alt="Tutor"><br><sub>AI tutor - answers grounded only in your uploaded material</sub></td>
+    <td width="33%"><img src="screenshots/flashcards.png" alt="Flashcards"><br><sub>Flashcards - real SM-2 spaced repetition scheduling</sub></td>
+    <td width="33%"></td>
+  </tr>
+</table>
+
 ## Features
 
 **Study material and diagnostics**

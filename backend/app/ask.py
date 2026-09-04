@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from .documents import get_user_id
 from .quiz import GROQ_MODEL, get_groq_client
+from .rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -22,9 +22,7 @@ class AskRequest(BaseModel):
 
 
 @router.post("/ask")
-def ask_question(body: AskRequest, authorization: str | None = Header(default=None)):
-    get_user_id(authorization)  # requires a logged-in user, material-independent
-
+def ask_question(body: AskRequest, user_id: str = Depends(rate_limit("ask", 30, 3600))):
     messages = [{"role": "system", "content": ASK_SYSTEM_PROMPT}]
     for msg in body.history[-10:]:
         messages.append({"role": msg.role, "content": msg.content})

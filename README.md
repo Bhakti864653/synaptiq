@@ -36,6 +36,23 @@ An adaptive AI study platform: upload your own study material, take a diagnostic
 - **AI:** [Groq](https://groq.com) (`openai/gpt-oss-120b`) for quiz generation, adaptive practice, the tutor, and flashcard generation
 - **Document parsing:** `pypdf`, `python-docx`, `python-pptx`
 
+## Architecture
+
+```mermaid
+graph LR
+    User(("Student"))
+    Frontend["Frontend<br/>Next.js on Vercel"]
+    Backend["Backend<br/>FastAPI on Render"]
+    Supabase[("Supabase<br/>Postgres + Auth + Storage")]
+    Groq["Groq API<br/>LLM + Whisper"]
+
+    User --> Frontend
+    Frontend --> Backend
+    Backend --> Supabase
+    Backend --> Groq
+    Frontend -. "auth + file upload<br/>(direct, anon key)" .-> Supabase
+```
+
 ## Architecture notes
 
 - **Two Supabase clients, deliberately kept separate:** the backend uses a service-role ("admin") client for all writes and cross-referencing queries, and the frontend talks to Supabase directly with the publishable ("anon") key for auth and file upload/insert. Per-user data isolation is enforced by Postgres Row Level Security on every table and the storage bucket (`auth.uid() = user_id`), not just by application code - verified directly against `pg_policies` rather than assumed from the dashboard UI. See [DEVLOG.md](DEVLOG.md) for a real case where the dashboard's own rendering of a policy was momentarily misleading and the database catalog was the actual source of truth.
@@ -80,3 +97,7 @@ This was the third project in my learning-to-code journey, built after a straigh
 - Implementing a real spaced-repetition algorithm (SM-2) instead of reaching for a library
 - Running a genuine security review of my own code and infrastructure - and learning to verify claims (like "is RLS actually enforced?") against the real system instead of trusting how a dashboard renders it
 - The gap between "the client-side hint says only these file types" and "the server actually enforces it" - and where that enforcement really has to live
+
+## License
+
+MIT - see [LICENSE](LICENSE).

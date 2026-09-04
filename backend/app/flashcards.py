@@ -1,11 +1,18 @@
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 from .documents import get_user_id
-from .quiz import GROQ_MODEL, _get_material, _get_owned_document, get_groq_client
+from .quiz import (
+    GROQ_MODEL,
+    _get_material,
+    _get_owned_document,
+    _require_keys,
+    get_groq_client,
+)
+from .rate_limit import rate_limit
 from .supabase_client import get_admin_client
 
 router = APIRouter()
@@ -34,9 +41,9 @@ Study material:
 
 @router.post("/documents/{document_id}/flashcards/generate")
 def generate_flashcards(
-    document_id: str, authorization: str | None = Header(default=None)
+    document_id: str,
+    user_id: str = Depends(rate_limit("flashcards-generate", 10, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     _get_owned_document(admin, document_id, user_id)
@@ -64,6 +71,8 @@ def generate_flashcards(
         cards_data = parsed["cards"]
         if not cards_data:
             raise ValueError("Model returned no flashcards")
+        for item in cards_data:
+            _require_keys(item, ("front", "back"))
     except Exception as exc:
         raise HTTPException(
             status_code=502, detail=f"Flashcard generation failed: {exc}"
@@ -116,6 +125,33 @@ class ReviewRequest(BaseModel):
 QUALITY_SCORES = {"again": 2, "good": 4, "easy": 5}
 
 
+def _compute_sm2(
+    quality: int, ease_factor: float, repetitions: int, interval_days: int
+) -> tuple[int, float, int]:
+    """SM-2 spaced-repetition scheduling. Returns the card's next
+    (interval_days, ease_factor, repetitions) given a review quality score
+    (2 = again, 4 = good, 5 = easy) and its current state. A quality below 3
+    resets the card to being relearned from scratch (repetitions=0,
+    interval=1 day); a lapse never drops ease_factor below the SM-2 floor
+    of 1.3."""
+    if quality < 3:
+        repetitions = 0
+        interval_days = 1
+    else:
+        if repetitions == 0:
+            interval_days = 1
+        elif repetitions == 1:
+            interval_days = 6
+        else:
+            interval_days = round(interval_days * ease_factor)
+        repetitions += 1
+
+    ease_factor = max(
+        1.3, ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    )
+    return interval_days, ease_factor, repetitions
+
+
 @router.post("/flashcards/{flashcard_id}/review")
 def review_flashcard(
     flashcard_id: str,
@@ -140,24 +176,11 @@ def review_flashcard(
     if quality is None:
         raise HTTPException(status_code=400, detail="Invalid quality rating")
 
-    ease_factor = float(card["ease_factor"])
-    repetitions = card["repetitions"]
-    interval_days = card["interval_days"]
-
-    if quality < 3:
-        repetitions = 0
-        interval_days = 1
-    else:
-        if repetitions == 0:
-            interval_days = 1
-        elif repetitions == 1:
-            interval_days = 6
-        else:
-            interval_days = round(interval_days * ease_factor)
-        repetitions += 1
-
-    ease_factor = max(
-        1.3, ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    interval_days, ease_factor, repetitions = _compute_sm2(
+        quality,
+        float(card["ease_factor"]),
+        card["repetitions"],
+        card["interval_days"],
     )
     next_review_date = date.today() + timedelta(days=interval_days)
 

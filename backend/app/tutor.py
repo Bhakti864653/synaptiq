@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from .documents import get_user_id
 from .quiz import GROQ_MODEL, _get_material, _get_owned_document, get_groq_client
+from .rate_limit import rate_limit
 from .supabase_client import get_admin_client
 
 router = APIRouter()
@@ -35,9 +35,8 @@ class TutorRequest(BaseModel):
 def ask_tutor(
     document_id: str,
     body: TutorRequest,
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("tutor", 30, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     _get_owned_document(admin, document_id, user_id)

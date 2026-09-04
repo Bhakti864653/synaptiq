@@ -2,11 +2,12 @@ import json
 import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from groq import Groq
 from pydantic import BaseModel, Field
 
 from .documents import get_user_id
+from .rate_limit import rate_limit
 from .supabase_client import get_admin_client
 from .streaks import record_study_session
 
@@ -68,6 +69,30 @@ def get_groq_client() -> Groq:
     return Groq(api_key=os.environ["GROQ_API_KEY"])
 
 
+def _require_keys(item: dict, keys: tuple[str, ...]) -> None:
+    """Raises ValueError naming any of `keys` missing from a Groq-generated
+    JSON item - the shared failure mode for a malformed model response,
+    surfaced as a clean error instead of an unguarded KeyError deep in a
+    DB-insert loop."""
+    missing = [k for k in keys if k not in item]
+    if missing:
+        raise ValueError(f"Model response missing field(s): {', '.join(missing)}")
+
+
+def _validate_quiz_item(item: dict, keys: tuple[str, ...]) -> None:
+    """Validates a Groq-generated multiple-choice question object: all
+    `keys` present, options is a non-empty list, and correct_index actually
+    indexes into it."""
+    _require_keys(item, keys)
+    options = item["options"]
+    if not isinstance(options, list) or not options:
+        raise ValueError("Model response has invalid 'options'")
+    if not isinstance(item["correct_index"], int) or not (
+        0 <= item["correct_index"] < len(options)
+    ):
+        raise ValueError("Model response has an out-of-range 'correct_index'")
+
+
 def _get_owned_document(admin, document_id: str, user_id: str) -> dict:
     result = (
         admin.table("documents")
@@ -116,6 +141,8 @@ def create_quiz_from_material(
         concepts_data = parsed["concepts"]
         if not concepts_data:
             raise ValueError("Model returned no concepts")
+        for item in concepts_data:
+            _validate_quiz_item(item, ("name", "question", "options", "correct_index"))
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Quiz generation failed: {exc}")
 
@@ -164,9 +191,9 @@ def create_quiz_from_material(
 
 @router.post("/documents/{document_id}/generate-quiz")
 def generate_quiz(
-    document_id: str, authorization: str | None = Header(default=None)
+    document_id: str,
+    user_id: str = Depends(rate_limit("quiz-generate", 10, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     document = _get_owned_document(admin, document_id, user_id)
@@ -200,9 +227,9 @@ WEAK_CONCEPT_LIMIT = 3
 
 @router.post("/documents/{document_id}/practice")
 def generate_practice(
-    document_id: str, authorization: str | None = Header(default=None)
+    document_id: str,
+    user_id: str = Depends(rate_limit("practice", 15, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     document = _get_owned_document(admin, document_id, user_id)
@@ -256,6 +283,10 @@ def generate_practice(
         questions_data = parsed["questions"]
         if not questions_data:
             raise ValueError("Model returned no questions")
+        for item in questions_data:
+            _validate_quiz_item(
+                item, ("concept_name", "question", "options", "correct_index")
+            )
     except Exception as exc:
         raise HTTPException(
             status_code=502, detail=f"Practice generation failed: {exc}"
@@ -291,10 +322,11 @@ GLOBAL_PRACTICE_LIMIT = 5
 
 
 @router.post("/practice")
-def generate_global_practice(authorization: str | None = Header(default=None)):
+def generate_global_practice(
+    user_id: str = Depends(rate_limit("global-practice", 15, 3600)),
+):
     """Practice across every document at once, not just one - pools the
     user's weakest concepts regardless of which material they came from."""
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     concepts = (
@@ -361,6 +393,10 @@ def generate_global_practice(authorization: str | None = Header(default=None)):
             )
             parsed = json.loads(completion.choices[0].message.content)
             questions_data = parsed["questions"]
+            for item in questions_data:
+                _validate_quiz_item(
+                    item, ("concept_name", "question", "options", "correct_index")
+                )
         except Exception:
             # One document's generation failing shouldn't sink the whole
             # cross-document batch - just skip it and use what did work.
@@ -429,6 +465,18 @@ def _response_points(is_correct: bool, confidence: int | None) -> float:
     if is_correct:
         return 50.0 + 10.0 * confidence
     return 50.0 - 10.0 * confidence
+
+
+def _compute_mastery_score(responses: list[dict]) -> int:
+    """Aggregates a concept's quiz responses (each a dict with "is_correct"
+    and "confidence") into a single 0-100 mastery score. A concept with no
+    responses yet has 0 mastery (unattempted, not "average")."""
+    if not responses:
+        return 0
+    total_points = sum(
+        _response_points(r["is_correct"], r["confidence"]) for r in responses
+    )
+    return max(0, min(100, round(total_points / len(responses))))
 
 
 @router.post("/quiz/submit")
@@ -517,24 +565,7 @@ def submit_quiz(
             .data
             or []
         )
-        total = len(responses)
-        score = (
-            max(
-                0,
-                min(
-                    100,
-                    round(
-                        sum(
-                            _response_points(r["is_correct"], r["confidence"])
-                            for r in responses
-                        )
-                        / total
-                    ),
-                ),
-            )
-            if total
-            else 0
-        )
+        score = _compute_mastery_score(responses)
 
         for group_concept_id in group_ids:
             admin.table("concept_mastery").update(

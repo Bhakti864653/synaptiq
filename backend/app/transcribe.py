@@ -1,7 +1,7 @@
-from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from .documents import get_user_id
 from .quiz import get_groq_client
+from .rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -11,10 +11,8 @@ TRANSCRIBE_MODEL = "whisper-large-v3-turbo"
 @router.post("/transcribe")
 async def transcribe(
     audio: UploadFile = File(...),
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("transcribe", 30, 3600)),
 ):
-    get_user_id(authorization)
-
     audio_bytes = await audio.read()
     client = get_groq_client()
     try:

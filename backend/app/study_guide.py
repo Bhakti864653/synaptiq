@@ -2,7 +2,7 @@ import json
 from datetime import date, datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from .documents import get_user_id
@@ -10,9 +10,11 @@ from .quiz import (
     GROQ_MODEL,
     _get_material,
     _get_owned_document,
+    _validate_quiz_item,
     create_quiz_from_material,
     get_groq_client,
 )
+from .rate_limit import rate_limit
 from .supabase_client import get_admin_client
 
 router = APIRouter()
@@ -90,14 +92,13 @@ class StudySetupRequest(BaseModel):
 def study_setup(
     document_id: str,
     body: StudySetupRequest,
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("study-setup", 10, 3600)),
 ):
     """First-time Study Guide setup for a document: extracts topics from the
     material if this is the first visit, then splits the given time budget
     across them - evenly if the student is starting from zero (no mastery
     signal exists yet), weighted toward weaker topics if they've already
     taken the diagnostic quiz."""
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     document = _get_owned_document(admin, document_id, user_id)
@@ -235,9 +236,8 @@ def _get_owned_concept(admin, document_id: str, concept_id: str) -> dict:
 def get_or_create_guide(
     document_id: str,
     concept_id: str,
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("guide", 15, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     _get_owned_document(admin, document_id, user_id)
@@ -301,9 +301,8 @@ def explain_differently(
     document_id: str,
     concept_id: str,
     body: ExplainDifferentlyRequest,
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("explain-differently", 20, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     _get_owned_document(admin, document_id, user_id)
@@ -337,9 +336,8 @@ def explain_differently(
 def generate_topic_quiz(
     document_id: str,
     concept_id: str,
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(rate_limit("topic-quiz", 15, 3600)),
 ):
-    user_id = get_user_id(authorization)
     admin = get_admin_client()
 
     _get_owned_document(admin, document_id, user_id)
@@ -384,6 +382,8 @@ def generate_topic_quiz(
         questions_data = parsed["questions"]
         if not questions_data:
             raise ValueError("Model returned no questions")
+        for item in questions_data:
+            _validate_quiz_item(item, ("question", "options", "correct_index"))
     except Exception as exc:
         raise HTTPException(
             status_code=502, detail=f"Topic quiz generation failed: {exc}"

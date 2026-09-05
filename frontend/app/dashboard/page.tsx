@@ -84,14 +84,17 @@ export default async function DashboardPage() {
   if (!isReturningUser) {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold text-ink">
-            Let&apos;s get you started
-          </h1>
-          <p className="text-sm text-ink-muted">
-            Upload a file or paste your notes — Synaptiq will turn them into a
-            diagnostic quiz and start tracking what you know.
-          </p>
+        <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <Mascot expression="excited" size={84} className="drop-shadow-md" />
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-semibold text-ink">
+              Let&apos;s get you started
+            </h1>
+            <p className="text-sm text-ink-muted">
+              Upload a file or paste your notes — Synaptiq will turn them into a
+              diagnostic quiz and start tracking what you know.
+            </p>
+          </div>
         </div>
         <DocumentUpload />
       </main>

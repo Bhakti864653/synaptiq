@@ -103,10 +103,10 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
-      <div className="gradient-hero relative flex items-end justify-between gap-4 overflow-hidden rounded-2xl p-6 sm:p-8">
+      <div className="gradient-hero relative flex flex-col items-start gap-4 overflow-hidden rounded-2xl p-6 lg:flex-row lg:items-end lg:justify-between lg:p-8">
         <HeroDots />
         <div className="relative">
-          <h1 className="text-3xl font-semibold text-ink">Study materials</h1>
+          <h1 className="text-2xl font-semibold text-ink lg:text-3xl">Study materials</h1>
           <p className="mt-1 text-sm text-ink-muted">
             {documents?.length ?? 0} document{documents?.length === 1 ? "" : "s"} ·{" "}
             {questionsAnswered ?? 0} question{questionsAnswered === 1 ? "" : "s"} answered

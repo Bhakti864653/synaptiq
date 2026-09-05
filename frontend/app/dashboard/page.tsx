@@ -156,18 +156,20 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-ink">Your materials</h2>
           <DocumentUpload collapsedByDefault />
         </div>
-        <ul className="flex flex-col gap-3">
-          {documents!.map((doc) => {
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {documents!.map((doc, i) => {
             const docMastery = averageMastery(
               conceptsByDocument.get(doc.id) ?? [],
             );
+            const featured = i === 0;
             return (
-              <li key={doc.id}>
+              <li key={doc.id} className={featured ? "sm:col-span-2" : undefined}>
                 <MaterialCard
                   id={doc.id}
                   filename={doc.filename}
                   status={doc.status}
                   mastery={docMastery}
+                  featured={featured}
                 />
               </li>
             );

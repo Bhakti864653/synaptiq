@@ -26,11 +26,13 @@ export default function MaterialCard({
   filename,
   status,
   mastery,
+  featured = false,
 }: {
   id: string;
   filename: string;
   status: string;
   mastery: number | null;
+  featured?: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -64,12 +66,27 @@ export default function MaterialCard({
   }
 
   return (
-    <Link href={`/dashboard/${id}`}>
-      <Card className="flex items-center gap-4 py-4 transition-transform hover:-translate-y-0.5 hover:bg-line/30">
-        <MasteryRing score={mastery} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-lg font-semibold text-ink">{filename}</div>
-          <div className="font-mono text-xs text-ink-muted">{status}</div>
+    <Link href={`/dashboard/${id}`} className={featured ? "block h-full" : undefined}>
+      <Card
+        className={`relative flex h-full items-center gap-4 transition-transform hover:-translate-y-0.5 hover:bg-line/30 ${
+          featured ? "flex-col items-start gap-5 py-6" : "py-4"
+        }`}
+      >
+        {featured && (
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-brand">
+            Last studied
+          </span>
+        )}
+        <div className={featured ? "flex w-full items-center gap-4" : "contents"}>
+          <MasteryRing score={mastery} size={featured ? 76 : 56} />
+          <div className="min-w-0 flex-1">
+            <div
+              className={`truncate font-semibold text-ink ${featured ? "text-xl" : "text-lg"}`}
+            >
+              {filename}
+            </div>
+            <div className="font-mono text-xs text-ink-muted">{status}</div>
+          </div>
         </div>
         <button
           onClick={handleDeleteClick}
@@ -77,6 +94,8 @@ export default function MaterialCard({
           disabled={deleting}
           aria-label={confirming ? "Confirm delete" : "Delete material"}
           className={`shrink-0 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+            featured ? "absolute right-4 top-4" : ""
+          } ${
             confirming
               ? "bg-weak text-white hover:opacity-90"
               : "text-ink-muted hover:bg-weak/10 hover:text-weak"

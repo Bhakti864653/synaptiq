@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -174,9 +174,10 @@ def build_study_plan(
         )
 
     # Persisted (not just used for this one calculation) so the daily
-    # reminder job can find it later.
+    # reminder job can find it later, and so the day-by-day schedule can be
+    # recomputed on every page load without the student resubmitting this form.
     admin.table("documents").update(
-        {"exam_date": body.exam_date.isoformat()}
+        {"exam_date": body.exam_date.isoformat(), "hours_per_day": body.hours_per_day}
     ).eq("id", document_id).execute()
 
     concept_ids = [c["id"] for c in concepts]
@@ -195,25 +196,48 @@ def build_study_plan(
 
     today = datetime.now(timezone.utc).date()
     days_until_exam = max((body.exam_date - today).days, 1)
-    total_minutes = round(days_until_exam * body.hours_per_day * 60)
+
+    # Reserve the last 1-2 days before the exam for revision - only the
+    # remaining "teaching days" get budgeted for new material.
+    revision_days = 2 if days_until_exam >= 4 else (1 if days_until_exam >= 2 else 0)
+    teaching_days = max(days_until_exam - revision_days, 1)
+    total_minutes = round(teaching_days * body.hours_per_day * 60)
 
     minutes_by_concept = _weighted_minutes(remaining, mastery_by_concept, total_minutes)
     remaining.sort(key=lambda c: minutes_by_concept[c["id"]], reverse=True)
 
+    # Greedily bin-pack topics into calendar days by urgency order, capping
+    # at teaching_days so overflow piles into the last teaching day instead
+    # of spilling into the reserved revision days.
+    day_minute_budget = body.hours_per_day * 60
+    day_offset = 0
+    day_minutes_used = 0
+
     plan = []
     next_index = len(passed)
     for c in remaining:
-        admin.table("concepts").update({"order_index": next_index}).eq(
-            "id", c["id"]
-        ).execute()
+        minutes = minutes_by_concept[c["id"]]
+        if (
+            day_minutes_used > 0
+            and day_minutes_used + minutes > day_minute_budget
+            and day_offset < teaching_days - 1
+        ):
+            day_offset += 1
+            day_minutes_used = 0
+        scheduled_date = today + timedelta(days=day_offset)
+
+        admin.table("concepts").update(
+            {"order_index": next_index, "scheduled_date": scheduled_date.isoformat()}
+        ).eq("id", c["id"]).execute()
         plan.append(
             {
                 "concept_id": c["id"],
                 "name": c["name"],
-                "minutes": minutes_by_concept[c["id"]],
+                "minutes": minutes,
             }
         )
         next_index += 1
+        day_minutes_used += minutes
 
     return {"days_until_exam": days_until_exam, "plan": plan}
 

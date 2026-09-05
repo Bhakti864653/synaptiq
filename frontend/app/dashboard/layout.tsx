@@ -1,6 +1,7 @@
 import TopNav from "@/components/TopNav";
 import Sidebar from "@/components/Sidebar";
 import MascotCompanion from "@/components/MascotCompanion";
+import DashboardBackdrop from "@/components/DashboardBackdrop";
 import { MascotProvider } from "@/lib/mascotContext";
 
 export default function DashboardLayout({
@@ -10,7 +11,8 @@ export default function DashboardLayout({
 }) {
   return (
     <MascotProvider>
-      <div className="flex min-h-screen flex-col">
+      <DashboardBackdrop />
+      <div className="relative z-10 flex min-h-screen flex-col">
         <TopNav showLogout />
         <div className="flex flex-1">
           <Sidebar />

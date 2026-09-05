@@ -3,7 +3,7 @@ import { ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "ghost" | "organic" | "organic-primary";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[10px_4px_10px_4px] px-3.5 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 const variants: Record<Variant, string> = {
   primary: "bg-brand text-brand-ink hover:opacity-85",

@@ -65,7 +65,7 @@ export default function Sidebar() {
       <button
         onClick={toggle}
         aria-label="Open sidebar"
-        className="m-2 flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-md border border-line text-ink-muted transition-colors hover:border-brand hover:text-brand"
+        className="m-2 flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-[10px_4px_10px_4px] border border-line text-ink-muted transition-colors hover:border-brand hover:text-brand"
       >
         <HamburgerIcon />
       </button>
@@ -80,7 +80,7 @@ export default function Sidebar() {
       <button
         onClick={toggle}
         aria-label="Collapse sidebar"
-        className="mb-2 flex h-8 w-8 items-center justify-center self-end rounded-md text-ink-muted transition-colors hover:bg-line/40 hover:text-ink"
+        className="mb-2 flex h-8 w-8 items-center justify-center self-end rounded-[10px_4px_10px_4px] text-ink-muted transition-colors hover:bg-line/40 hover:text-ink"
       >
         <HamburgerIcon />
       </button>
@@ -93,7 +93,7 @@ export default function Sidebar() {
           <Link
             key={link.href}
             href={link.href}
-            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-[10px_4px_10px_4px] px-3 py-2 text-sm font-medium transition-colors ${
               isActive
                 ? "bg-brand text-brand-ink"
                 : "text-ink-muted hover:bg-line/40 hover:text-ink"
@@ -111,7 +111,7 @@ export default function Sidebar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
+              className={`rounded-[10px_4px_10px_4px] px-3 py-1.5 text-xs transition-colors ${
                 isActive
                   ? "text-brand font-medium"
                   : "text-ink-muted/70 hover:text-ink-muted"

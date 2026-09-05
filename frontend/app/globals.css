@@ -3,11 +3,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --paper: #fafafa;
-  --surface: #ffffff;
-  --ink: #191919;
-  --ink-muted: #787774;
-  --line: #e9e9e7;
+  /* "Warm Margin" is now the whole app's palette, not just the landing
+     page - paper/ink/line moved to this same warm-cream family. --brand
+     and --accent-2 are deliberately unchanged: they're the existing
+     orange-to-purple accent this redesign was asked to keep and extend,
+     not replace. */
+  --paper: #f6efdd;
+  --surface: #fbf6ea;
+  --ink: #2c241a;
+  --ink-muted: #6b5f47;
+  --line: #ddceac;
   --brand: #6366f1;
   --brand-ink: #ffffff;
   --weak: #ef4444;
@@ -18,9 +23,9 @@
   --series-3: #1baf7a;
   --accent-2: #f59e0b;
 
-  /* "Warm Margin" - landing-page-only palette. Deliberately its own warm
-     paper tone rather than reusing --paper/--ink, so the rest of the app
-     (which stays flat/Notion-style) is untouched by this redesign. */
+  /* Landing-specific aliases kept for the pre-auth pages' explicit
+     token references - same values as the app tokens above now that
+     the whole app shares this palette. */
   --landing-paper: #f6efdd;
   --landing-ink: #2c241a;
   --landing-ink-muted: #6b5f47;
@@ -31,11 +36,14 @@
 }
 
 .dark {
-  --paper: #0f0f1a;
-  --surface: #1a1a2e;
-  --ink: #d4d4d4;
-  --ink-muted: #999999;
-  --line: #2f2f2f;
+  /* Warm Margin dark: a deliberate warm brown-black, not the app's old
+     cool navy dark mode - the whole point is atmosphere, not just an
+     inversion. --brand/--accent-2 dark values are unchanged. */
+  --paper: #1c1712;
+  --surface: #241d15;
+  --ink: #f3ead9;
+  --ink-muted: #b8a988;
+  --line: #3a3025;
   --brand: #818cf8;
   --brand-ink: #0f0f1a;
   --weak: #ef4444;
@@ -46,8 +54,6 @@
   --series-3: #199e70;
   --accent-2: #fbbf24;
 
-  /* Warm Margin dark: a deliberate warm brown-black, not the app's cool
-     navy dark mode - the whole point is atmosphere, not just an inversion. */
   --landing-paper: #1c1712;
   --landing-ink: #f3ead9;
   --landing-ink-muted: #b8a988;

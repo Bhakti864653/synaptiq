@@ -31,7 +31,7 @@ export default function LandingMascot() {
     <div className="flex flex-col items-center gap-2">
       {message && (
         <div
-          className="animate-fade-up max-w-[240px] rounded-2xl rounded-bl-sm border border-line bg-surface px-3 py-2 text-sm text-ink shadow-lg"
+          className="animate-fade-up max-w-[240px] rounded-2xl rounded-bl-sm border border-landing-line bg-landing-paper px-3 py-2 text-sm text-landing-ink shadow-lg"
           role="status"
         >
           {message}

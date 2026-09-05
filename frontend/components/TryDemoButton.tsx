@@ -7,7 +7,11 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "./ErrorMessage";
 import Button from "./Button";
 
-export default function TryDemoButton() {
+export default function TryDemoButton({
+  variant = "secondary",
+}: {
+  variant?: "secondary" | "organic";
+}) {
   const router = useRouter();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
@@ -45,7 +49,7 @@ export default function TryDemoButton() {
 
   return (
     <div className="flex flex-col gap-2">
-      <Button variant="secondary" onClick={startDemo} disabled={starting}>
+      <Button variant={variant} onClick={startDemo} disabled={starting}>
         {starting ? "Setting up your demo..." : "Try the demo"}
       </Button>
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}

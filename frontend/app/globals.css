@@ -17,6 +17,17 @@
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --accent-2: #f59e0b;
+
+  /* "Warm Margin" - landing-page-only palette. Deliberately its own warm
+     paper tone rather than reusing --paper/--ink, so the rest of the app
+     (which stays flat/Notion-style) is untouched by this redesign. */
+  --landing-paper: #f6efdd;
+  --landing-ink: #2c241a;
+  --landing-ink-muted: #6b5f47;
+  --landing-glow-amber: #f2a63f;
+  --landing-accent-ink: #a8641b;
+  --landing-glow-violet: #7c4fc9;
+  --landing-line: #ddceac;
 }
 
 .dark {
@@ -34,6 +45,16 @@
   --series-2: #d95926;
   --series-3: #199e70;
   --accent-2: #fbbf24;
+
+  /* Warm Margin dark: a deliberate warm brown-black, not the app's cool
+     navy dark mode - the whole point is atmosphere, not just an inversion. */
+  --landing-paper: #1c1712;
+  --landing-ink: #f3ead9;
+  --landing-ink-muted: #b8a988;
+  --landing-glow-amber: #f2a63f;
+  --landing-accent-ink: #f2b463;
+  --landing-glow-violet: #9b6bff;
+  --landing-line: #3a3025;
 }
 
 @theme inline {
@@ -51,8 +72,16 @@
   --color-series-2: var(--series-2);
   --color-series-3: var(--series-3);
   --color-accent-2: var(--accent-2);
+  --color-landing-paper: var(--landing-paper);
+  --color-landing-ink: var(--landing-ink);
+  --color-landing-ink-muted: var(--landing-ink-muted);
+  --color-landing-glow-amber: var(--landing-glow-amber);
+  --color-landing-accent-ink: var(--landing-accent-ink);
+  --color-landing-glow-violet: var(--landing-glow-violet);
+  --color-landing-line: var(--landing-line);
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);
+  --font-fraunces: var(--font-fraunces);
 }
 
 body {
@@ -121,6 +150,21 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .mascot-idle, .mascot-excited, .mascot-celebrating, .mascot-spark-twinkle, .mascot-float, .mascot-float-slow {
+    animation: none;
+  }
+}
+
+@keyframes landing-glow-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-3%, 4%) scale(1.05); }
+}
+
+.landing-glow-drift {
+  animation: landing-glow-drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-glow-drift {
     animation: none;
   }
 }

@@ -73,7 +73,10 @@ export default function Sidebar() {
   }
 
   return (
-    <nav className="flex w-56 shrink-0 flex-col gap-1 border-r border-line/60 p-4">
+    <nav
+      className="flex w-56 shrink-0 flex-col gap-1 border-r border-line/60 p-4 backdrop-blur-sm"
+      style={{ background: "color-mix(in srgb, var(--ink) 8%, transparent)" }}
+    >
       <button
         onClick={toggle}
         aria-label="Collapse sidebar"

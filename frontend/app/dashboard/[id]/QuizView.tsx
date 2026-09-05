@@ -8,6 +8,7 @@ import ConceptMasteryHistory from "@/components/ConceptMasteryHistory";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
+import QuizResultBanner from "@/components/QuizResultBanner";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import { useMascot } from "@/lib/mascotContext";
@@ -188,6 +189,32 @@ export default function QuizView({
     (latestMastery ?? mastery).map((m) => [m.concept_id, m.mastery_score]),
   );
 
+  const diagnosticSubmitted =
+    questions.length > 0 && questions.every((q) => results[q.id]);
+  const diagnosticScorePct = diagnosticSubmitted
+    ? Math.round(
+        (100 * questions.filter((q) => results[q.id]?.is_correct).length) /
+          questions.length,
+      )
+    : null;
+
+  const practiceSubmitted =
+    !!practiceQuestions && practiceQuestions.every((q) => results[q.id]);
+  const practiceScorePct =
+    practiceSubmitted && practiceQuestions
+      ? Math.round(
+          (100 *
+            practiceQuestions.filter((q) => results[q.id]?.is_correct).length) /
+            practiceQuestions.length,
+        )
+      : null;
+
+  const tutorHint = (
+    <p className="text-sm text-ink-muted">
+      Head to the Tutor tab to talk through what you missed.
+    </p>
+  );
+
   if (status === "uploaded" || status === "processing") {
     return (
       <p className="text-sm text-ink-muted">
@@ -224,6 +251,13 @@ export default function QuizView({
       {status === "quiz_ready" && questions.length > 0 && (
         <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Diagnostic quiz</h2>
+          {diagnosticScorePct !== null && (
+            <QuizResultBanner
+              scorePct={diagnosticScorePct}
+              celebrate={false}
+              supportHint={tutorHint}
+            />
+          )}
           {questions.map((q) => (
             <QuestionBlock
               key={q.id}
@@ -268,6 +302,9 @@ export default function QuizView({
       {practiceQuestions && (
         <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Practice session</h2>
+          {practiceScorePct !== null && (
+            <QuizResultBanner scorePct={practiceScorePct} supportHint={tutorHint} />
+          )}
           {practiceQuestions.map((q) => (
             <QuestionBlock
               key={q.id}

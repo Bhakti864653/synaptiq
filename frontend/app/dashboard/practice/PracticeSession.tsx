@@ -7,6 +7,7 @@ import ErrorMessage from "@/components/ErrorMessage";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
+import QuizResultBanner from "@/components/QuizResultBanner";
 import { useMascot } from "@/lib/mascotContext";
 import { celebrateFromResults } from "@/lib/mascotMessages";
 
@@ -105,9 +106,25 @@ export default function PracticeSession() {
     (q) => answers[q.id] !== undefined && confidences[q.id] !== undefined,
   );
   const allSubmitted = questions.every((q) => results[q.id]);
+  const scorePct = allSubmitted
+    ? Math.round(
+        (100 * questions.filter((q) => results[q.id]?.is_correct).length) /
+          questions.length,
+      )
+    : null;
 
   return (
     <Card className="flex flex-col gap-6">
+      {scorePct !== null && (
+        <QuizResultBanner
+          scorePct={scorePct}
+          supportHint={
+            <p className="text-sm text-ink-muted">
+              Open the document&apos;s Tutor tab to talk through what you missed.
+            </p>
+          }
+        />
+      )}
       {questions.map((q) => (
         <div key={q.id} className="flex flex-col gap-2">
           <p className="text-xs text-ink-muted">

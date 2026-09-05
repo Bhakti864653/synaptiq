@@ -10,6 +10,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
 import QuestionBlock from "@/components/QuestionBlock";
+import QuizResultBanner from "@/components/QuizResultBanner";
 import StudySetup from "./StudySetup";
 import { useMascot } from "@/lib/mascotContext";
 
@@ -294,33 +295,38 @@ function TopicBody({
 
           {submitted && scorePct !== null && (
             <div className="flex flex-col gap-3">
-              {scorePct >= PASS_THRESHOLD ? (
-                <p className="font-medium text-mastered">
-                  Passed — {scorePct}%. Next topic unlocked.
-                </p>
-              ) : (
-                <>
-                  <p className="font-medium text-weak">
-                    You scored {scorePct}% — we recommend reviewing before moving
-                    on.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      onClick={startQuiz}
-                      disabled={generating}
-                      className="w-fit"
-                    >
-                      {generating ? "Preparing quiz..." : "Try again"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={onAdvance}
-                      className="w-fit"
-                    >
-                      Continue anyway
-                    </Button>
-                  </div>
-                </>
+              <QuizResultBanner
+                scorePct={scorePct}
+                unlockNote={
+                  scorePct >= PASS_THRESHOLD ? "Next topic unlocked." : undefined
+                }
+                supportHint={
+                  <Button
+                    variant="secondary"
+                    onClick={() => setQuestions(null)}
+                    className="w-fit"
+                  >
+                    Review the explanation
+                  </Button>
+                }
+              />
+              {scorePct < PASS_THRESHOLD && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    onClick={startQuiz}
+                    disabled={generating}
+                    className="w-fit"
+                  >
+                    {generating ? "Preparing quiz..." : "Try again"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={onAdvance}
+                    className="w-fit"
+                  >
+                    Continue anyway
+                  </Button>
+                </div>
               )}
             </div>
           )}

@@ -47,15 +47,20 @@ export default function LoginPage() {
     <GradientShell>
       <main className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-ink">Welcome back</h1>
-          <p className="text-sm text-ink-muted">
+          <h1
+            className="text-3xl font-medium text-landing-ink"
+            style={{ fontFamily: "var(--font-fraunces)" }}
+          >
+            Welcome back
+          </h1>
+          <p className="text-sm text-landing-ink-muted">
             Log in to pick up where you left off.
           </p>
         </div>
-        <Card>
+        <Card className="!rounded-[18px_8px_18px_8px] !border-landing-line !bg-landing-paper">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="email" className="text-sm font-medium text-ink">
+              <label htmlFor="email" className="text-sm font-medium text-landing-ink">
                 Email
               </label>
               <Input
@@ -65,10 +70,11 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="!border-landing-line !bg-landing-paper !text-landing-ink placeholder:!text-landing-ink-muted focus:!border-landing-glow-violet"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="password" className="text-sm font-medium text-ink">
+              <label htmlFor="password" className="text-sm font-medium text-landing-ink">
                 Password
               </label>
               <Input
@@ -78,17 +84,18 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="!border-landing-line !bg-landing-paper !text-landing-ink placeholder:!text-landing-ink-muted focus:!border-landing-glow-violet"
               />
             </div>
             {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" variant="organic-primary" disabled={loading} className="w-full">
               {loading ? "Logging in..." : "Log in"}
             </Button>
           </form>
         </Card>
-        <p className="text-center text-sm text-ink-muted">
+        <p className="text-center text-sm text-landing-ink-muted">
           Need an account?{" "}
-          <Link href="/signup" className="font-medium text-brand hover:underline">
+          <Link href="/signup" className="font-medium text-landing-glow-violet hover:underline">
             Sign up
           </Link>
         </p>

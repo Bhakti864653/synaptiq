@@ -175,9 +175,13 @@ body {
   }
 }
 
+/* Used as a repeated page-header banner (dashboard home, every settings-
+   style page, the document title bar) - deliberately single-hue rather
+   than the full amber-to-indigo transition, so that combination stays a
+   "moment" reserved for the landing headline instead of wallpaper that
+   shows up on every page. */
 .gradient-hero {
   background:
-    radial-gradient(900px circle at 15% -10%, color-mix(in srgb, var(--accent-2) 55%, transparent), transparent 60%),
-    radial-gradient(900px circle at 100% 10%, color-mix(in srgb, var(--brand) 55%, transparent), transparent 60%),
+    radial-gradient(900px circle at 10% -10%, color-mix(in srgb, var(--accent-2) 42%, transparent), transparent 65%),
     var(--paper);
 }

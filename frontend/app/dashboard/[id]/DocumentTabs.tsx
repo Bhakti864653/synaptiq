@@ -26,7 +26,7 @@ export default function DocumentTabs({ tabs }: { tabs: Tab[] }) {
         <div
           aria-hidden
           className="hidden h-8 w-8 shrink-0 rounded-full sm:block"
-          style={{ background: "linear-gradient(120deg, var(--accent-2), var(--brand))" }}
+          style={{ background: "color-mix(in srgb, var(--brand) 35%, transparent)" }}
         />
         {tabs.map((tab, i) => {
           const isActive = tab.id === active?.id;
@@ -41,14 +41,9 @@ export default function DocumentTabs({ tabs }: { tabs: Tab[] }) {
                 onClick={() => setActiveId(tab.id)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                   isActive
-                    ? "scale-105 text-white shadow-[0_8px_20px_-8px_rgba(124,79,201,0.55)]"
+                    ? "scale-105 bg-brand text-brand-ink shadow-[0_8px_20px_-8px_rgba(99,102,241,0.5)]"
                     : "border border-line text-ink-muted hover:border-brand hover:text-ink"
                 }`}
-                style={
-                  isActive
-                    ? { background: "linear-gradient(100deg, var(--accent-2), var(--brand))" }
-                    : undefined
-                }
               >
                 {tab.label}
               </button>

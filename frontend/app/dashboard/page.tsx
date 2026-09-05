@@ -2,9 +2,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Card from "@/components/Card";
+import Mascot from "@/components/Mascot";
+import HeroDots from "@/components/HeroDots";
 import { masteryColorVar } from "@/lib/mastery";
 import DocumentUpload from "./DocumentUpload";
 import MaterialCard from "./MaterialCard";
+
+// Reflects standing progress, not a one-off event (that's what the
+// floating MascotCompanion's celebrate() calls are for) - a quiet read of
+// "how are things going overall" every time you land here.
+function heroExpression(overallMastery: number | null) {
+  if (overallMastery === null) return "idle" as const;
+  if (overallMastery >= 80) return "celebrating" as const;
+  if (overallMastery > 0 && overallMastery < 50) return "encouraging" as const;
+  return "idle" as const;
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -88,25 +100,32 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
-      <div className="gradient-hero flex items-end justify-between gap-4 rounded-2xl p-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">Study materials</h1>
-          <p className="text-sm text-ink-muted">
+      <div className="gradient-hero relative flex items-end justify-between gap-4 overflow-hidden rounded-2xl p-6 sm:p-8">
+        <HeroDots />
+        <div className="relative">
+          <h1 className="text-3xl font-semibold text-ink">Study materials</h1>
+          <p className="mt-1 text-sm text-ink-muted">
             {documents?.length ?? 0} document{documents?.length === 1 ? "" : "s"} ·{" "}
             {questionsAnswered ?? 0} question{questionsAnswered === 1 ? "" : "s"} answered
           </p>
         </div>
         {overallMastery !== null && (
-          <Link href="/dashboard/progress" className="group flex flex-col items-end">
-            <span
-              className="font-mono text-3xl font-bold leading-none text-black"
-              style={{ textShadow: "0 1px 4px rgba(255,255,255,0.45)" }}
-            >
-              {overallMastery}%
-            </span>
-            <span className="text-xs text-ink-muted group-hover:text-ink">
-              overall mastery &rarr;
-            </span>
+          <Link
+            href="/dashboard/progress"
+            className="group relative flex items-center gap-3"
+          >
+            <Mascot expression={heroExpression(overallMastery)} size={60} className="drop-shadow-md" />
+            <div className="flex flex-col items-end">
+              <span
+                className="font-mono text-3xl font-bold leading-none text-black"
+                style={{ textShadow: "0 1px 4px rgba(255,255,255,0.45)" }}
+              >
+                {overallMastery}%
+              </span>
+              <span className="text-xs text-ink-muted group-hover:text-ink">
+                overall mastery &rarr;
+              </span>
+            </div>
           </Link>
         )}
       </div>

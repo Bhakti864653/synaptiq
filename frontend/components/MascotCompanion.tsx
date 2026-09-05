@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import Mascot from "./Mascot";
 import { useMascot } from "@/lib/mascotContext";
 import { randomClickQuip } from "@/lib/mascotMessages";
@@ -9,8 +10,13 @@ import { randomClickQuip } from "@/lib/mascotMessages";
 // called from wherever a real moment happens (finishing a quiz, starting
 // a topic, etc) - or when someone just clicks it to say hi.
 export default function MascotCompanion() {
+  const pathname = usePathname();
   const { state, celebrate } = useMascot();
   const speaking = state.message !== null;
+
+  // The dashboard home page has its own Spark embedded in the hero banner
+  // now - a second floating one there would just look like a duplicate.
+  if (pathname === "/dashboard") return null;
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">

@@ -9,6 +9,7 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
 import QuizResultBanner from "@/components/QuizResultBanner";
+import ReadAloud from "@/components/ReadAloud";
 import { useMascot } from "@/lib/mascotContext";
 
 export type TopicConcept = {
@@ -206,11 +207,10 @@ export default function TopicBody({
           {loadingGuide && <p className="text-sm text-ink-muted">Loading...</p>}
           {guide && (
             <div className="flex flex-col gap-3">
-              {guide.summary.split("\n\n").map((para, i) => (
-                <p key={i} className="text-ink">
-                  {para}
-                </p>
-              ))}
+              <ReadAloud
+                paragraphs={guide.summary.split("\n\n")}
+                documentId={documentId}
+              />
               <Card className="border-l-2 border-l-brand">
                 <p className="text-xs font-medium text-ink-muted">
                   From your material

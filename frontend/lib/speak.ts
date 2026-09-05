@@ -22,6 +22,21 @@ export function stopSpeaking() {
   }
 }
 
+// Pause/resume (as opposed to stopSpeaking's cancel) preserve exact position
+// in the current utterance - only safe to use when no other utterance is
+// queued in between pausing and resuming.
+export function pauseSpeaking() {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.pause();
+  }
+}
+
+export function resumeSpeaking() {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.resume();
+  }
+}
+
 export function speechOutputSupported() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }

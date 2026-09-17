@@ -272,6 +272,25 @@ def test_a_document_that_never_recorded_a_processing_start_time_is_treated_as_st
 # --- concurrent claim attempts -----------------------------------------------
 
 
+def test_claim_for_processing_reclaims_a_stale_document_with_null_started_at():
+    """Directly exercises _claim_for_processing's reclaim UPDATE for a
+    processing_started_at=NULL row - proves the CAS uses PostgREST's
+    .is_() null filter and not .eq(column, None), which real Postgres
+    would compile to `= NULL` and never match. A fake that treated Python
+    `None == None` as equivalent to SQL's NULL semantics would let this
+    pass even with the old, broken .eq(...)-based code - this test only
+    means something because conftest.FakeQuery now models .is_() for real.
+    """
+    doc = _owned_document(status="processing", processing_started_at=None)
+    fake = FakeAdminClient(tables={"documents": [dict(doc)]})
+    snapshot = dict(doc)
+
+    assert _claim_for_processing(fake, snapshot) is True
+    reclaimed = fake._tables["documents"][0]
+    assert reclaimed["status"] == "processing"
+    assert reclaimed["processing_started_at"] is not None
+
+
 def test_concurrent_claim_attempts_on_an_uploaded_document_only_let_one_through():
     """Simulates two nearly-simultaneous requests that both read the row
     while it was still "uploaded", before either had written anything -

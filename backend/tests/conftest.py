@@ -12,6 +12,7 @@ class FakeQuery:
         self._store = store
         self._name = name
         self._filters: dict = {}
+        self._is_filters: dict = {}
         self._in_filters: dict = {}
         self._single = False
         self._order_by: tuple[str, bool] | None = None
@@ -23,6 +24,14 @@ class FakeQuery:
 
     def eq(self, column, value):
         self._filters[column] = value
+        return self
+
+    def is_(self, column, value):
+        # Real PostgREST .is_() only ever means IS NULL/IS TRUE/IS FALSE -
+        # never Python `==`, and specifically never matches a row whose
+        # value is merely absent-ish. Mirror that instead of collapsing to
+        # eq-with-None, which is exactly the bug this fake exists to catch.
+        self._is_filters[column] = value
         return self
 
     def in_(self, column, values):
@@ -52,6 +61,18 @@ class FakeQuery:
     def _matches(self, row: dict) -> bool:
         for key, value in self._filters.items():
             if row.get(key) != value:
+                return False
+        for key, value in self._is_filters.items():
+            if value in (None, "null"):
+                if row.get(key) is not None:
+                    return False
+            elif value == "true":
+                if row.get(key) is not True:
+                    return False
+            elif value == "false":
+                if row.get(key) is not False:
+                    return False
+            elif row.get(key) != value:
                 return False
         for key, values in self._in_filters.items():
             if row.get(key) not in values:

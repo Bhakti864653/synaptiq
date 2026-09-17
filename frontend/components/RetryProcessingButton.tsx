@@ -6,6 +6,30 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
 
+// FastAPI's `detail` is either a plain string or a structured object (as
+// this endpoint's own 409 uses: {code, message}) - never render either form
+// directly, since an object detail passed straight into JSX throws "Objects
+// are not valid as a React child".
+function extractDetailMessage(detail: unknown, fallback: string): string {
+  if (typeof detail === "string") return detail;
+  if (
+    detail &&
+    typeof detail === "object" &&
+    typeof (detail as { message?: unknown }).message === "string"
+  ) {
+    return (detail as { message: string }).message;
+  }
+  return fallback;
+}
+
+function isAlreadyProcessing(detail: unknown): boolean {
+  return (
+    !!detail &&
+    typeof detail === "object" &&
+    (detail as { code?: unknown }).code === "ALREADY_PROCESSING"
+  );
+}
+
 // Calls the same POST /documents/{id}/process endpoint the initial upload
 // uses - retrying processing IS re-calling it, there is no separate retry
 // endpoint. That request is synchronous end to end (extract, chunk, set
@@ -29,9 +53,21 @@ export default function RetryProcessingButton({
       const body = await res.json().catch(() => ({}));
       if (res.ok) {
         onResult({ status: "processed", error_message: null });
-      } else {
-        onResult({ status: "error", error_message: body.detail ?? "Processing failed." });
+        return;
       }
+      if (res.status === 409 && isAlreadyProcessing(body.detail)) {
+        // Someone else's request is genuinely still in flight - this is
+        // not a failure, so the document must stay exactly as it is
+        // ("processing"), never flipped to "error" underneath it.
+        setError(
+          extractDetailMessage(body.detail, "This document is already being processed."),
+        );
+        return;
+      }
+      onResult({
+        status: "error",
+        error_message: extractDetailMessage(body.detail, "Processing failed."),
+      });
     } catch (e) {
       // A network failure here is genuinely inconclusive - we don't know
       // whether the request landed, so we don't touch the document's

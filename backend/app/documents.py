@@ -191,14 +191,21 @@ def _claim_for_processing(admin, document: dict) -> bool:
     if not _is_stale_processing(document.get("processing_started_at"), now):
         return False
 
-    result = (
+    previous_started_at = document.get("processing_started_at")
+    query = (
         admin.table("documents")
         .update({"processing_started_at": now_iso})
         .eq("id", document_id)
         .eq("status", "processing")
-        .eq("processing_started_at", document.get("processing_started_at"))
-        .execute()
     )
+    if previous_started_at is None:
+        # PostgREST's eq operator never matches NULL (it compiles to
+        # `= NULL`, which SQL always evaluates to unknown) - .is_() is the
+        # only correct way to express "processing_started_at IS NULL" here.
+        query = query.is_("processing_started_at", "null")
+    else:
+        query = query.eq("processing_started_at", previous_started_at)
+    result = query.execute()
     return bool(result and result.data)
 
 

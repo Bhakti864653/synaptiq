@@ -6,7 +6,7 @@ import Mascot from "@/components/Mascot";
 import HeroDots from "@/components/HeroDots";
 import { masteryColorVar } from "@/lib/mastery";
 import DocumentUpload from "./DocumentUpload";
-import MaterialCard from "./MaterialCard";
+import MaterialsBoard from "./MaterialsBoard";
 
 // Reflects standing progress, not a one-off event (that's what the
 // floating MascotCompanion's celebrate() calls are for) - a quiet read of
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   const { data: documents } = await supabase
     .from("documents")
-    .select("id, filename, status, created_at")
+    .select("id, filename, status, error_message, created_at")
     .order("created_at", { ascending: false });
 
   const { data: concepts } = await supabase
@@ -178,33 +178,11 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-ink">Your materials</h2>
           <DocumentUpload collapsedByDefault />
         </div>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {documents!.map((doc, i) => {
-            const docMastery = averageMastery(
-              conceptsByDocument.get(doc.id) ?? [],
-            );
-            const featured = i === 0;
-            // Everything after the last-studied card falls into a loose
-            // bento rhythm rather than a uniform stack once there's a third
-            // column to play with - every third card goes wide, echoing
-            // Orbit's "peers, not a spreadsheet" feel. Below lg the sidebar
-            // leaves too little room for three columns (same trap as the
-            // hero banner), so it stays a plain 2-up grid there.
-            const wide = !featured && (i - 1) % 3 === 0;
-            const span = featured ? "col-span-full" : wide ? "lg:col-span-2" : undefined;
-            return (
-              <li key={doc.id} className={span}>
-                <MaterialCard
-                  id={doc.id}
-                  filename={doc.filename}
-                  status={doc.status}
-                  mastery={docMastery}
-                  featured={featured}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        <MaterialsBoard
+          documents={documents!}
+          conceptsByDocument={conceptsByDocument}
+          masteryByConceptId={masteryByConceptId}
+        />
       </div>
     </main>
   );

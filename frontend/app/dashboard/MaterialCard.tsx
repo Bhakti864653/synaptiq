@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Card from "@/components/Card";
 import MasteryRing from "@/components/MasteryRing";
+import ProcessingIndicator from "@/components/ProcessingIndicator";
+import RetryProcessingButton from "@/components/RetryProcessingButton";
+import { isPending, isFailed, isPracticeReady, isReadyForDiagnostic } from "@/lib/documentStatus";
 
 function TrashIcon() {
   return (
@@ -25,14 +28,18 @@ export default function MaterialCard({
   id,
   filename,
   status,
+  errorMessage = null,
   mastery,
   featured = false,
+  onRetried,
 }: {
   id: string;
   filename: string;
   status: string;
+  errorMessage?: string | null;
   mastery: number | null;
   featured?: boolean;
+  onRetried?: (result: { status: "processed" | "error"; error_message: string | null }) => void;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -85,7 +92,27 @@ export default function MaterialCard({
             >
               {filename}
             </div>
-            <div className="font-mono text-xs text-ink-muted">{status}</div>
+            {isPending(status) && <ProcessingIndicator />}
+            {isReadyForDiagnostic(status) && (
+              <p className="text-xs font-medium text-brand">Start diagnostic quiz &rarr;</p>
+            )}
+            {isPracticeReady(status) && (
+              <p className="text-xs font-medium text-[var(--mastered)]">
+                Ready for personalized practice
+              </p>
+            )}
+            {isFailed(status) && (
+              <div className="flex flex-col items-start gap-1.5">
+                <p className="text-xs text-weak">
+                  {errorMessage ?? "Processing failed."}
+                </p>
+                {onRetried && (
+                  <div onClick={(e) => e.preventDefault()}>
+                    <RetryProcessingButton documentId={id} onResult={onRetried} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <button

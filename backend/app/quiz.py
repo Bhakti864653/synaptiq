@@ -109,6 +109,68 @@ def _get_owned_document(admin, document_id: str, user_id: str) -> dict:
     return document
 
 
+# The single, shared definition of "practice ready" - a document only
+# reaches "quiz_ready" via create_quiz_from_material below, which always
+# creates concepts+questions+mastery rows together, so this one status
+# check is equivalent to "this document has concepts to practice." Every
+# endpoint that needs to know whether practice can start (both the
+# per-document and the cross-document /practice endpoints) goes through
+# _raise_practice_not_ready so the two can never silently disagree.
+PRACTICE_READY_STATUS = "quiz_ready"
+
+
+def _raise_practice_not_ready(documents: list[dict]) -> None:
+    """Raises a structured HTTPException explaining exactly why practice
+    can't start yet, given a user's (or one document's) status. Priority
+    matters: a document already mid-flight ("uploaded"/"processing") is
+    reported as still preparing even if another document has permanently
+    failed, since the in-flight one might resolve on its own; only once
+    nothing is still in flight do we report a firm failure or an explicit
+    next step. Never called when at least one document is already
+    PRACTICE_READY_STATUS - callers check that first."""
+    processing = [d for d in documents if d["status"] in ("uploaded", "processing")]
+    if processing:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "PROCESSING",
+                "message": "Your material is still being prepared. Practice will unlock when it's ready.",
+                "document_id": processing[0]["id"],
+            },
+        )
+
+    failed = [d for d in documents if d["status"] == "error"]
+    if failed:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "PROCESSING_FAILED",
+                "message": "Processing failed for your material. Retry processing to continue.",
+                "document_id": failed[0]["id"],
+            },
+        )
+
+    processed = [d for d in documents if d["status"] == "processed"]
+    if processed:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "DIAGNOSTIC_REQUIRED",
+                "message": "Complete the diagnostic quiz first so Synaptiq can personalize your practice.",
+                "document_id": processed[0]["id"],
+            },
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "code": "NO_DOCUMENTS",
+            "message": "Upload your first study material to begin practicing.",
+            "document_id": None,
+        },
+    )
+
+
 def _get_material(admin, document_id: str) -> str:
     chunks = (
         admin.table("document_chunks")
@@ -233,6 +295,8 @@ def generate_practice(
     admin = get_admin_client()
 
     document = _get_owned_document(admin, document_id, user_id)
+    if document["status"] != PRACTICE_READY_STATUS:
+        _raise_practice_not_ready([document])
 
     concepts = (
         admin.table("concepts")
@@ -243,10 +307,10 @@ def generate_practice(
         or []
     )
     if not concepts:
-        raise HTTPException(
-            status_code=400,
-            detail="Generate the diagnostic quiz first so there are concepts to practice.",
-        )
+        # Shouldn't happen given the status check above (quiz_ready always
+        # implies concepts exist), but fail the same clear way rather than
+        # crashing if it ever does.
+        _raise_practice_not_ready([document])
 
     concept_ids = [c["id"] for c in concepts]
     mastery_rows = (
@@ -329,19 +393,31 @@ def generate_global_practice(
     user's weakest concepts regardless of which material they came from."""
     admin = get_admin_client()
 
+    documents = (
+        admin.table("documents").select("id, status").eq("user_id", user_id).execute().data
+        or []
+    )
+    ready_document_ids = [d["id"] for d in documents if d["status"] == PRACTICE_READY_STATUS]
+    if not ready_document_ids:
+        # Covers every case, including zero documents at all - documents=[]
+        # falls straight through to the NO_DOCUMENTS branch.
+        _raise_practice_not_ready(documents)
+
+    # Scoped to only currently-ready documents, not every concept the user
+    # has ever had - a document that was quiz_ready once but has since
+    # errored out on a re-process shouldn't keep surfacing its old concepts
+    # here.
     concepts = (
         admin.table("concepts")
         .select("id, name, document_id")
         .eq("user_id", user_id)
+        .in_("document_id", ready_document_ids)
         .execute()
         .data
         or []
     )
     if not concepts:
-        raise HTTPException(
-            status_code=400,
-            detail="Upload some material first so there are concepts to practice.",
-        )
+        _raise_practice_not_ready(documents)
 
     concept_ids = [c["id"] for c in concepts]
     mastery_rows = (

@@ -13,6 +13,11 @@ export default async function PracticePage() {
     redirect("/login");
   }
 
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("id, status, error_message")
+    .order("created_at", { ascending: false });
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <div className="gradient-hero rounded-2xl p-6">
@@ -23,7 +28,7 @@ export default async function PracticePage() {
         </p>
       </div>
 
-      <PracticeSession />
+      <PracticeSession initialDocuments={documents ?? []} />
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { authFetch } from "@/lib/authFetch";
 import ErrorMessage from "@/components/ErrorMessage";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
@@ -22,6 +23,7 @@ export default function DocumentUpload({
   const [pasteTitle, setPasteTitle] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [processingNotice, setProcessingNotice] = useState<string | null>(null);
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(
     null,
   );
@@ -44,6 +46,7 @@ export default function DocumentUpload({
   async function uploadFile(file: File) {
     setUploading(true);
     setError(null);
+    setProcessingNotice(null);
 
     const supabase = createClient();
     const {
@@ -97,25 +100,43 @@ export default function DocumentUpload({
     setPasteText("");
     router.refresh();
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (session) {
-      fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/documents/${inserted.id}/process`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        },
-      )
-        .catch(() => {
-          // Non-fatal: the document stays visible with status "uploaded"
-          // and can be retried; the dashboard will simply keep polling.
-        })
-        .finally(() => {
-          router.refresh();
+    // Kick off processing and wait for the real outcome rather than firing
+    // this and moving on - a failure here (network drop, a 500 from the
+    // backend) needs to be visible and retryable, not silently swallowed.
+    // If the request never lands at all (e.g. the tab closes right now),
+    // the document is left at status "uploaded" in the DB - the dashboard's
+    // own polling (useDocumentPolling) is the safety net that notices that
+    // and re-triggers processing later, so this awaited call is the fast
+    // path, not the only path.
+    setProcessingNotice("Preparing your material...");
+    try {
+      const res = await authFetch(`/documents/${inserted.id}/process`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setProcessingNotice(null);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const detail = typeof body.detail === "string" ? body.detail : body.detail?.message;
+        setProcessingNotice(null);
+        setError({
+          message: detail ?? "Processing failed. You can retry it from the material card below.",
+          retry: () =>
+            authFetch(`/documents/${inserted.id}/process`, { method: "POST" })
+              .then(() => router.refresh())
+              .catch(() => {}),
         });
+      }
+    } catch {
+      // A network failure here doesn't mean processing failed - it means
+      // we don't know. The document stays at "uploaded" and the polling
+      // safety net will pick it back up; no need to alarm the user with a
+      // hard error for what's likely just a slow/dropped connection.
+      setProcessingNotice(
+        "Uploaded - still connecting to finish preparing it, this will resolve automatically.",
+      );
+    } finally {
+      router.refresh();
     }
 
     setUploading(false);
@@ -196,6 +217,9 @@ export default function DocumentUpload({
 
       {uploading && mode === "file" && (
         <p className="text-sm text-ink-muted">Uploading...</p>
+      )}
+      {processingNotice && !error && (
+        <p className="text-sm text-ink-muted">{processingNotice}</p>
       )}
       {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
     </Card>

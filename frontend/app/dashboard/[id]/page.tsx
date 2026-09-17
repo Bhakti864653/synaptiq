@@ -6,6 +6,7 @@ import QuizView from "./QuizView";
 import StudyGuide from "./StudyGuide";
 import TutorChat from "./TutorChat";
 import DocumentTabs from "./DocumentTabs";
+import DocumentStatusWatcher from "./DocumentStatusWatcher";
 
 export default async function DocumentPage({
   params,
@@ -112,11 +113,12 @@ export default async function DocumentPage({
         <h1 className="mt-1 text-2xl font-semibold text-ink">{document.filename}</h1>
       </div>
 
-      {document.status === "error" && (
-        <p className="text-sm text-weak">
-          Processing failed: {document.error_message}
-        </p>
-      )}
+      <DocumentStatusWatcher
+        key={document.id}
+        id={document.id}
+        status={document.status}
+        errorMessage={document.error_message}
+      />
 
       <DocumentTabs tabs={tabs} />
     </main>

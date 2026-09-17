@@ -218,7 +218,7 @@ export default function QuizView({
   if (status === "uploaded" || status === "processing") {
     return (
       <p className="text-sm text-ink-muted">
-        Still processing this document — check back in a moment.
+        Still preparing this document — this tab will update on its own once it&apos;s ready.
       </p>
     );
   }

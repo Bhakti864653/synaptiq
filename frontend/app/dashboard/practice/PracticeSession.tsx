@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
+import { classifyPracticeReadiness, type DocSummary } from "@/lib/practiceReadiness";
+import { useDocumentPolling } from "@/lib/useDocumentPolling";
 import ErrorMessage from "@/components/ErrorMessage";
+import ProcessingIndicator from "@/components/ProcessingIndicator";
+import RetryProcessingButton from "@/components/RetryProcessingButton";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
 import QuestionBlock from "@/components/QuestionBlock";
@@ -21,8 +26,36 @@ type Question = {
 };
 type Result = { is_correct: boolean; correct_index: number };
 
-export default function PracticeSession() {
+function readinessMessage(code: string): string {
+  switch (code) {
+    case "NO_DOCUMENTS":
+      return "Upload your first study material to begin practicing.";
+    case "PROCESSING":
+      return "Your material is still being prepared. Practice will unlock when it's ready.";
+    case "PROCESSING_FAILED":
+      return "Processing failed for your material.";
+    case "DIAGNOSTIC_REQUIRED":
+      return "Complete the diagnostic quiz first so Synaptiq can personalize your practice.";
+    default:
+      return "Practice isn't ready yet.";
+  }
+}
+
+// Before ever enabling "Start practice," works out the user's actual state
+// from their documents (not just from concept-count zero/non-zero) so the
+// message and action shown always match what would really happen if they
+// clicked the button - the button itself is disabled instead until that's
+// true, so a click can never surface a misleading backend error.
+export default function PracticeSession({
+  initialDocuments,
+}: {
+  initialDocuments: DocSummary[];
+}) {
   const { celebrate } = useMascot();
+  const [documents, setDocuments] = useState(initialDocuments);
+  const { unreachable } = useDocumentPolling(documents, setDocuments);
+  const readiness = classifyPracticeReadiness(documents);
+
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [confidences, setConfidences] = useState<Record<string, number>>({});
@@ -40,7 +73,14 @@ export default function PracticeSession() {
       const res = await authFetch(`/practice`, { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || `Failed (${res.status})`);
+        const detail = body.detail;
+        const message =
+          typeof detail === "object" && detail?.message
+            ? detail.message
+            : typeof detail === "string"
+              ? detail
+              : `Failed (${res.status})`;
+        throw new Error(message);
       }
       const body = await res.json();
       setQuestions(body.questions);
@@ -94,9 +134,51 @@ export default function PracticeSession() {
   if (!questions) {
     return (
       <Card className="flex flex-col gap-3">
-        <Button onClick={startPractice} disabled={generating} className="w-fit">
-          {generating ? "Building your practice session..." : "Start practice"}
-        </Button>
+        {readiness.code === "READY" ? (
+          <Button onClick={startPractice} disabled={generating} className="w-fit">
+            {generating ? "Building your practice session..." : "Start practice"}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {readiness.code === "PROCESSING" ? (
+              <ProcessingIndicator label={readinessMessage(readiness.code)} />
+            ) : (
+              <p className="text-sm text-ink-muted">{readinessMessage(readiness.code)}</p>
+            )}
+
+            {readiness.code === "NO_DOCUMENTS" && (
+              <Link href="/dashboard">
+                <Button variant="secondary" className="w-fit">
+                  Go to upload
+                </Button>
+              </Link>
+            )}
+            {readiness.code === "PROCESSING_FAILED" && readiness.documentId && (
+              <RetryProcessingButton
+                documentId={readiness.documentId}
+                onResult={(result) =>
+                  setDocuments((prev) =>
+                    prev.map((d) =>
+                      d.id === readiness.documentId ? { ...d, ...result } : d,
+                    ),
+                  )
+                }
+              />
+            )}
+            {readiness.code === "DIAGNOSTIC_REQUIRED" && readiness.documentId && (
+              <Link href={`/dashboard/${readiness.documentId}`}>
+                <Button variant="secondary" className="w-fit">
+                  Go to diagnostic quiz
+                </Button>
+              </Link>
+            )}
+            {unreachable && (
+              <p className="text-xs text-ink-muted">
+                Having trouble checking for updates - this will keep retrying automatically.
+              </p>
+            )}
+          </div>
+        )}
         {error && <ErrorMessage message={error.message} onRetry={error.retry} />}
       </Card>
     );

@@ -3,6 +3,7 @@ import TryDemoButton from "@/components/TryDemoButton";
 import LandingIllustration from "@/components/LandingIllustration";
 import LandingMascot from "@/components/LandingMascot";
 import ThemeToggle from "@/components/ThemeToggle";
+import { SynaptiqLogo } from "@/components/logo";
 
 export default function Home() {
   return (
@@ -10,12 +11,7 @@ export default function Home() {
       <LandingIllustration />
 
       <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12">
-        <span
-          className="text-lg font-semibold text-landing-ink"
-          style={{ fontFamily: "var(--font-fraunces)" }}
-        >
-          Synaptiq
-        </span>
+        <SynaptiqLogo size={26} wordmarkClassName="text-landing-ink" />
         <ThemeToggle />
       </header>
 

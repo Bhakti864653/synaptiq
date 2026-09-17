@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { computeCurrentStreak } from "@/lib/streak";
 import Card from "@/components/Card";
 import MasteryBar from "@/components/MasteryBar";
 import AccuracyTrendChart from "@/components/AccuracyTrendChart";
@@ -40,21 +41,7 @@ export default async function ProgressPage() {
     .order("session_date", { ascending: false })
     .limit(30);
 
-  const sessionDates = new Set((sessions ?? []).map((s) => s.session_date));
-  const todayStr = new Date().toISOString().slice(0, 10);
-  function addDays(dateStr: string, delta: number) {
-    const d = new Date(dateStr + "T00:00:00Z");
-    d.setUTCDate(d.getUTCDate() + delta);
-    return d.toISOString().slice(0, 10);
-  }
-  // A streak still counts as current if today hasn't been studied yet but
-  // yesterday was - the day isn't over. It breaks once a full day is skipped.
-  let cursor = sessionDates.has(todayStr) ? todayStr : addDays(todayStr, -1);
-  let currentStreak = 0;
-  while (sessionDates.has(cursor)) {
-    currentStreak += 1;
-    cursor = addDays(cursor, -1);
-  }
+  const currentStreak = computeCurrentStreak((sessions ?? []).map((s) => s.session_date));
 
   const masteryByConceptId = new Map(
     (mastery ?? []).map((m) => [m.concept_id, m.mastery_score]),

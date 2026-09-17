@@ -53,14 +53,11 @@ export default function MaterialsBoard({
   }
 
   return (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {documents.map((doc, i) => {
+    <ul className="flex flex-col divide-y divide-line border-y border-line">
+      {documents.map((doc) => {
         const docMastery = averageMastery(conceptsByDocument.get(doc.id) ?? []);
-        const featured = i === 0;
-        const wide = !featured && (i - 1) % 3 === 0;
-        const span = featured ? "col-span-full" : wide ? "lg:col-span-2" : undefined;
         return (
-          <li key={doc.id} className={span}>
+          <li key={doc.id}>
             <MaterialCard
               id={doc.id}
               filename={doc.filename}
@@ -68,7 +65,6 @@ export default function MaterialsBoard({
               errorMessage={doc.error_message}
               processingStartedAt={doc.processing_started_at}
               mastery={docMastery}
-              featured={featured}
               onRetried={(result) =>
                 setDocuments((prev) =>
                   prev.map((d) => (d.id === doc.id ? { ...d, ...result } : d)),

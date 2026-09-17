@@ -2,6 +2,7 @@ import Link from "next/link";
 import CursorGlow from "./CursorGlow";
 import LandingIllustration from "./LandingIllustration";
 import ThemeToggle from "./ThemeToggle";
+import { SynaptiqLogo } from "@/components/logo";
 
 // Shared "Warm Margin" chrome for the login and signup pages - the same
 // atmosphere as the landing page (asymmetric glow, synapse dots, warm
@@ -18,12 +19,8 @@ export default function GradientShell({
       <LandingIllustration />
       <CursorGlow />
       <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12">
-        <Link
-          href="/"
-          className="text-lg font-semibold text-landing-ink"
-          style={{ fontFamily: "var(--font-fraunces)" }}
-        >
-          Synaptiq
+        <Link href="/" className="text-landing-ink">
+          <SynaptiqLogo size={24} wordmarkClassName="text-landing-ink" />
         </Link>
         <ThemeToggle />
       </header>

@@ -1,21 +1,30 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import Card from "@/components/Card";
-import Mascot from "@/components/Mascot";
-import HeroDots from "@/components/HeroDots";
-import { masteryColorVar } from "@/lib/mastery";
+import { computeCurrentStreak } from "@/lib/streak";
+import { buildConstellationData } from "@/lib/visualization/buildConstellationData";
+import Mascot, { MascotExpression } from "@/components/Mascot";
+import GreetingHeader from "@/components/dashboard/GreetingHeader";
+import ContinueLearning, { ContinueLearningFocus } from "@/components/dashboard/ContinueLearning";
+import NeedsAttentionStrip from "@/components/dashboard/NeedsAttentionStrip";
+import KnowledgeConstellation from "@/components/visualization/KnowledgeConstellation";
 import DocumentUpload from "./DocumentUpload";
 import MaterialsBoard from "./MaterialsBoard";
 
 // Reflects standing progress, not a one-off event (that's what the
 // floating MascotCompanion's celebrate() calls are for) - a quiet read of
 // "how are things going overall" every time you land here.
-function heroExpression(overallMastery: number | null) {
-  if (overallMastery === null) return "idle" as const;
-  if (overallMastery >= 80) return "celebrating" as const;
-  if (overallMastery > 0 && overallMastery < 50) return "encouraging" as const;
-  return "idle" as const;
+function heroExpression(overallMastery: number | null): MascotExpression {
+  if (overallMastery === null) return "idle";
+  if (overallMastery >= 80) return "celebrating";
+  if (overallMastery > 0 && overallMastery < 50) return "encouraging";
+  return "idle";
+}
+
+// Usable enough to be the "continue learning" focus - a document that's
+// still uploading/processing or failed has nothing real to continue with
+// yet.
+function isUsableForContinueLearning(status: string) {
+  return status === "processed" || status === "quiz_ready";
 }
 
 export default async function DashboardPage() {
@@ -29,6 +38,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const displayName = (user.user_metadata?.full_name as string | undefined)?.trim() || null;
+
   const { data: documents } = await supabase
     .from("documents")
     .select("id, filename, status, error_message, processing_started_at, created_at")
@@ -36,7 +47,7 @@ export default async function DashboardPage() {
 
   const { data: concepts } = await supabase
     .from("concepts")
-    .select("id, document_id, name");
+    .select("id, document_id, name, order_index, summary");
 
   const { data: mastery } = await supabase
     .from("concept_mastery")
@@ -46,15 +57,28 @@ export default async function DashboardPage() {
     .from("quiz_responses")
     .select("id", { count: "exact", head: true });
 
+  const { data: sessions } = await supabase
+    .from("study_sessions")
+    .select("session_date")
+    .order("session_date", { ascending: false })
+    .limit(60);
+
+  const currentStreak = computeCurrentStreak((sessions ?? []).map((s) => s.session_date));
+
   const masteryByConceptId = new Map(
     (mastery ?? []).map((m) => [m.concept_id, m.mastery_score]),
   );
 
   const conceptsByDocument = new Map<string, string[]>();
+  const conceptsByDocumentFull = new Map<string, typeof concepts>();
   for (const c of concepts ?? []) {
-    const list = conceptsByDocument.get(c.document_id) ?? [];
-    list.push(c.id);
-    conceptsByDocument.set(c.document_id, list);
+    const ids = conceptsByDocument.get(c.document_id) ?? [];
+    ids.push(c.id);
+    conceptsByDocument.set(c.document_id, ids);
+
+    const full = conceptsByDocumentFull.get(c.document_id) ?? [];
+    full.push(c);
+    conceptsByDocumentFull.set(c.document_id, full);
   }
 
   function averageMastery(conceptIds: string[]) {
@@ -70,16 +94,43 @@ export default async function DashboardPage() {
   const overallMastery = averageMastery(allConceptIds);
   const isReturningUser = (documents?.length ?? 0) > 0;
 
-  // Surface weak spots unprompted, right on the page a returning user lands
-  // on. Only concepts with real (if low) evidence of an attempt qualify -
-  // a concept nobody has touched yet defaults to the same 0 score and
-  // isn't a "weak spot" so much as a "not started yet" one.
   const documentById = new Map((documents ?? []).map((d) => [d.id, d]));
   const allWeakSpots = (concepts ?? [])
     .map((c) => ({ ...c, score: masteryByConceptId.get(c.id) ?? 0 }))
     .filter((c) => c.score > 0 && c.score < 60)
     .sort((a, b) => a.score - b.score);
   const weakSpots = allWeakSpots.slice(0, 3);
+
+  // "Continue learning" focus: the most recently touched usable material,
+  // and within it, the first concept (by order_index) that isn't already
+  // mastered - or simply the first concept if everything is, or none if
+  // this material has no concepts extracted yet.
+  const continueDocument = (documents ?? []).find((d) => isUsableForContinueLearning(d.status));
+  let continueFocus: ContinueLearningFocus | null = null;
+  if (continueDocument) {
+    const docConcepts = (conceptsByDocumentFull.get(continueDocument.id) ?? [])
+      .slice()
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    const nextConcept =
+      docConcepts.find((c) => (masteryByConceptId.get(c.id) ?? 0) < 80) ?? docConcepts[0] ?? null;
+    continueFocus = {
+      documentId: continueDocument.id,
+      filename: continueDocument.filename,
+      conceptName: nextConcept?.name ?? null,
+      conceptSummary: nextConcept?.summary ?? null,
+      mastery: nextConcept ? masteryByConceptId.get(nextConcept.id) ?? 0 : null,
+    };
+  }
+
+  const constellationData = buildConstellationData({
+    concepts: (concepts ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      document_id: c.document_id,
+    })),
+    documents: documents ?? [],
+    masteryByConceptId,
+  });
 
   if (!isReturningUser) {
     return (
@@ -102,80 +153,39 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 p-6">
-      <div className="gradient-hero relative flex flex-col items-start gap-4 overflow-hidden rounded-2xl p-6 lg:flex-row lg:items-end lg:justify-between lg:p-8">
-        <HeroDots />
-        <div className="relative">
-          <h1 className="text-2xl font-semibold text-ink lg:text-3xl">Study materials</h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {documents?.length ?? 0} document{documents?.length === 1 ? "" : "s"} ·{" "}
-            {questionsAnswered ?? 0} question{questionsAnswered === 1 ? "" : "s"} answered
-          </p>
-        </div>
-        {overallMastery !== null && (
-          <Link
-            href="/dashboard/progress"
-            className="group relative flex items-center gap-3"
-          >
-            <Mascot expression={heroExpression(overallMastery)} size={60} className="drop-shadow-md" />
-            <div className="flex flex-col items-end">
-              <span
-                className="font-mono text-3xl font-bold leading-none text-black"
-                style={{ textShadow: "0 1px 4px rgba(255,255,255,0.45)" }}
-              >
-                {overallMastery}%
-              </span>
-              <span className="text-xs text-ink-muted group-hover:text-ink">
-                overall mastery &rarr;
-              </span>
-            </div>
-          </Link>
-        )}
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6">
+      <GreetingHeader
+        name={displayName}
+        materialCount={documents?.length ?? 0}
+        questionsAnswered={questionsAnswered ?? 0}
+        streakDays={currentStreak}
+        overallMastery={overallMastery}
+        isReturningUser={isReturningUser}
+        mascotExpression={heroExpression(overallMastery)}
+      />
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+        <ContinueLearning focus={continueFocus} />
+        <KnowledgeConstellation
+          data={constellationData}
+          emptyHint="Once you upload a material, your concepts will appear here as a constellation."
+        />
       </div>
 
-      {weakSpots.length > 0 && (
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-ink">Weak spots to revisit</h2>
-          <ul className="flex flex-col gap-2">
-            {weakSpots.map((c) => {
-              const doc = documentById.get(c.document_id);
-              if (!doc) return null;
-              return (
-                <li key={c.id}>
-                  <Link
-                    href={`/dashboard/${doc.id}`}
-                    className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 -mx-2 hover:bg-line/40"
-                  >
-                    <span className="text-sm text-ink">
-                      {c.name}
-                      <span className="text-ink-muted"> · {doc.filename}</span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-ink-muted">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: masteryColorVar(c.score) }}
-                      />
-                      {c.score}%
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          {allWeakSpots.length > weakSpots.length && (
-            <Link
-              href="/dashboard/weak-spots"
-              className="self-start text-xs text-ink-muted hover:text-ink"
-            >
-              See all {allWeakSpots.length} &rarr;
-            </Link>
-          )}
-        </Card>
-      )}
+      <NeedsAttentionStrip
+        items={weakSpots.map((c) => ({
+          conceptId: c.id,
+          documentId: c.document_id,
+          conceptName: c.name,
+          filename: documentById.get(c.document_id)?.filename ?? "",
+          score: c.score,
+        }))}
+        totalCount={allWeakSpots.length}
+      />
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Your materials</h2>
+          <h2 className="text-lg font-semibold text-ink">Your library</h2>
           <DocumentUpload collapsedByDefault />
         </div>
         <MaterialsBoard

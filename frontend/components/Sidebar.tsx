@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SynaptiqMark } from "@/components/logo";
 
 const mainLinks = [
   { href: "/dashboard", label: "Study Materials" },
@@ -36,6 +37,17 @@ export default function Sidebar() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // A stored preference is scoped to whatever viewport it was set on -
+    // a sidebar left open on desktop must not also force it open (and the
+    // page into real horizontal overflow, since the sidebar's own fixed
+    // 224px width doesn't fit) on a phone. Mobile-width always starts
+    // collapsed regardless of any stored value; the stored preference
+    // still governs everything at tablet/desktop widths as before.
+    if (window.innerWidth < 768) {
+      setOpen(false);
+      setReady(true);
+      return;
+    }
     try {
       const stored = localStorage.getItem("sidebar-open");
       if (stored !== null) setOpen(stored === "true");
@@ -77,13 +89,16 @@ export default function Sidebar() {
       className="flex w-56 shrink-0 flex-col gap-1 border-r border-line/60 p-4 backdrop-blur-sm"
       style={{ background: "color-mix(in srgb, var(--ink) 8%, transparent)" }}
     >
-      <button
-        onClick={toggle}
-        aria-label="Collapse sidebar"
-        className="mb-2 flex h-8 w-8 items-center justify-center self-end rounded-[10px_4px_10px_4px] text-ink-muted transition-colors hover:bg-line/40 hover:text-ink"
-      >
-        <HamburgerIcon />
-      </button>
+      <div className="mb-2 flex items-center justify-between">
+        <SynaptiqMark size={20} className="text-ink-muted" title="Synaptiq" />
+        <button
+          onClick={toggle}
+          aria-label="Collapse sidebar"
+          className="flex h-8 w-8 items-center justify-center rounded-[10px_4px_10px_4px] text-ink-muted transition-colors hover:bg-line/40 hover:text-ink"
+        >
+          <HamburgerIcon />
+        </button>
+      </div>
       {mainLinks.map((link) => {
         const isActive =
           link.href === "/dashboard"

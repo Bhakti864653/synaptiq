@@ -1,4 +1,5 @@
 import io
+from datetime import datetime, timezone
 
 from docx import Document as DocxDocument
 from fastapi import APIRouter, Header, HTTPException
@@ -11,6 +12,27 @@ router = APIRouter()
 
 CHUNK_SIZE = 1200
 CHUNK_OVERLAP = 150
+
+# python-docx/python-pptx only parse the OOXML formats (.docx/.pptx) - the
+# legacy binary .doc/.ppt formats need a different parser entirely and
+# aren't supported. Kept as the single source of truth for both the
+# friendly-message text and the actual extraction dispatch below, so the
+# two can never drift out of sync.
+SUPPORTED_EXTENSIONS = (".pdf", ".pptx", ".docx", ".txt")
+SUPPORTED_FORMATS_LABEL = "PDF, PPTX, DOCX, or TXT"
+
+# How long a document may sit at status "processing" before it's treated as
+# abandoned rather than genuinely still working. Processing is one
+# synchronous request/response (download, extract, chunk, write) with no
+# legitimate reason to take anywhere near this long - a document still
+# "processing" past this point means the request that started it died
+# without ever reaching the except block (a server restart, a killed
+# worker), not that it's just slow.
+PROCESSING_STALE_TIMEOUT_SECONDS = 120
+
+
+def is_supported_filename(filename: str) -> bool:
+    return filename.lower().endswith(SUPPORTED_EXTENSIONS)
 
 
 def extract_text(file_bytes: bytes, filename: str) -> str:
@@ -119,6 +141,67 @@ def delete_document(
     return {"status": "deleted"}
 
 
+def _is_stale_processing(processing_started_at: str | None, now: datetime) -> bool:
+    """A missing timestamp (a document that reached "processing" before
+    this column existed) is treated as stale immediately - there's no
+    evidence it's still healthy, and reclaiming it is always safe."""
+    if not processing_started_at:
+        return True
+    try:
+        started = datetime.fromisoformat(processing_started_at)
+    except ValueError:
+        return True
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=timezone.utc)
+    return (now - started).total_seconds() >= PROCESSING_STALE_TIMEOUT_SECONDS
+
+
+def _claim_for_processing(admin, document: dict) -> bool:
+    """Atomically claims the right to (re)run processing for this document,
+    returning True if this call should actually do the work. Two paths:
+
+    1. The document isn't currently "processing" (uploaded/error/processed/
+       quiz_ready): claim it via a conditional UPDATE keyed on its exact
+       last-known status. Postgres only ever lets one such UPDATE match
+       those old values, so a second, near-simultaneous caller reading the
+       same starting status loses the race and gets back zero rows instead
+       of a duplicate attempt.
+    2. The document IS "processing": only reclaim it if it looks abandoned
+       (see _is_stale_processing) - a genuinely healthy in-flight request
+       must never be duplicated. The reclaim UPDATE is itself conditioned
+       on the exact processing_started_at value just read, as a
+       best-effort (timestamp-equality, not a hard guarantee against every
+       possible postgrest formatting edge case) guard against two callers
+       both detecting the same stale window and both reclaiming it.
+    """
+    document_id = document["id"]
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    if document["status"] != "processing":
+        result = (
+            admin.table("documents")
+            .update({"status": "processing", "processing_started_at": now_iso})
+            .eq("id", document_id)
+            .eq("status", document["status"])
+            .execute()
+        )
+        return bool(result and result.data)
+
+    if not _is_stale_processing(document.get("processing_started_at"), now):
+        return False
+
+    result = (
+        admin.table("documents")
+        .update({"processing_started_at": now_iso})
+        .eq("id", document_id)
+        .eq("status", "processing")
+        .eq("processing_started_at", document.get("processing_started_at"))
+        .execute()
+    )
+    return bool(result and result.data)
+
+
 @router.post("/documents/{document_id}/process")
 def process_document(
     document_id: str, authorization: str | None = Header(default=None)
@@ -139,9 +222,21 @@ def process_document(
     if document["user_id"] != user_id:
         raise HTTPException(status_code=403, detail="Not your document")
 
-    admin.table("documents").update({"status": "processing"}).eq(
-        "id", document_id
-    ).execute()
+    if not is_supported_filename(document["filename"]):
+        message = f"Unsupported file type. Supported formats: {SUPPORTED_FORMATS_LABEL}."
+        admin.table("documents").update(
+            {"status": "error", "error_message": message}
+        ).eq("id", document_id).execute()
+        raise HTTPException(status_code=400, detail=message)
+
+    if not _claim_for_processing(admin, document):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "ALREADY_PROCESSING",
+                "message": "This document is already being processed.",
+            },
+        )
 
     try:
         file_bytes = admin.storage.from_("study-materials").download(

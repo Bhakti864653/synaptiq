@@ -15,7 +15,7 @@ export default async function PracticePage() {
 
   const { data: documents } = await supabase
     .from("documents")
-    .select("id, status, error_message")
+    .select("id, status, error_message, processing_started_at")
     .order("created_at", { ascending: false });
 
   return (

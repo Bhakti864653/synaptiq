@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDocumentPolling } from "@/lib/useDocumentPolling";
-import { isFailed, isPending } from "@/lib/documentStatus";
+import { isFailed, isPending, isStalledProcessing } from "@/lib/documentStatus";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import RetryProcessingButton from "@/components/RetryProcessingButton";
 
@@ -24,14 +24,21 @@ export default function DocumentStatusWatcher({
   id,
   status: initialStatus,
   errorMessage: initialErrorMessage,
+  processingStartedAt: initialProcessingStartedAt,
 }: {
   id: string;
   status: string;
   errorMessage: string | null;
+  processingStartedAt: string | null;
 }) {
   const router = useRouter();
   const [documents, setDocuments] = useState([
-    { id, status: initialStatus, error_message: initialErrorMessage },
+    {
+      id,
+      status: initialStatus,
+      error_message: initialErrorMessage,
+      processing_started_at: initialProcessingStartedAt,
+    },
   ]);
   const { unreachable } = useDocumentPolling(documents, setDocuments);
 
@@ -45,6 +52,28 @@ export default function DocumentStatusWatcher({
   }, [current.status]);
 
   if (isPending(current.status)) {
+    if (isStalledProcessing(current.status, current.processing_started_at)) {
+      return (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm text-weak">
+            Processing appears stuck. It&apos;s been running longer than expected.
+          </p>
+          <RetryProcessingButton
+            documentId={id}
+            onResult={(result) =>
+              setDocuments([
+                {
+                  id,
+                  status: result.status,
+                  error_message: result.error_message,
+                  processing_started_at: null,
+                },
+              ])
+            }
+          />
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col gap-1">
         <ProcessingIndicator label="We're preparing your material." />
@@ -66,7 +95,14 @@ export default function DocumentStatusWatcher({
         <RetryProcessingButton
           documentId={id}
           onResult={(result) =>
-            setDocuments([{ id, status: result.status, error_message: result.error_message }])
+            setDocuments([
+              {
+                id,
+                status: result.status,
+                error_message: result.error_message,
+                processing_started_at: null,
+              },
+            ])
           }
         />
       </div>

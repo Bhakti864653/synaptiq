@@ -28,10 +28,10 @@ describe("classifyPracticeReadiness", () => {
     });
   });
 
-  it("reports DIAGNOSTIC_REQUIRED for a processed document with no concepts yet", () => {
+  it("reports SETUP_REQUIRED for a processed document with no concepts yet", () => {
     expect(
       classifyPracticeReadiness([{ id: "d1", status: "processed" }]),
-    ).toEqual({ code: "DIAGNOSTIC_REQUIRED", documentId: "d1" });
+    ).toEqual({ code: "SETUP_REQUIRED", documentId: "d1" });
   });
 
   it("reports READY when at least one document is quiz_ready, regardless of others", () => {
@@ -58,7 +58,7 @@ describe("classifyPracticeReadiness", () => {
     });
   });
 
-  it("prioritizes PROCESSING_FAILED over DIAGNOSTIC_REQUIRED once nothing is processing", () => {
+  it("prioritizes PROCESSING_FAILED over SETUP_REQUIRED once nothing is processing", () => {
     const documents = [
       { id: "d1", status: "processed" },
       { id: "d2", status: "error" },

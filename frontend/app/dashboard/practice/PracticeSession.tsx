@@ -6,6 +6,7 @@ import { authFetch } from "@/lib/authFetch";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import { classifyPracticeReadiness, type DocSummary } from "@/lib/practiceReadiness";
 import { useDocumentPolling } from "@/lib/useDocumentPolling";
+import { isStalledProcessing } from "@/lib/documentStatus";
 import ErrorMessage from "@/components/ErrorMessage";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import RetryProcessingButton from "@/components/RetryProcessingButton";
@@ -34,8 +35,8 @@ function readinessMessage(code: string): string {
       return "Your material is still being prepared. Practice will unlock when it's ready.";
     case "PROCESSING_FAILED":
       return "Processing failed for your material.";
-    case "DIAGNOSTIC_REQUIRED":
-      return "Complete the diagnostic quiz first so Synaptiq can personalize your practice.";
+    case "SETUP_REQUIRED":
+      return "Set up this material before starting personalized practice.";
     default:
       return "Practice isn't ready yet.";
   }
@@ -55,6 +56,11 @@ export default function PracticeSession({
   const [documents, setDocuments] = useState(initialDocuments);
   const { unreachable } = useDocumentPolling(documents, setDocuments);
   const readiness = classifyPracticeReadiness(documents);
+  const blockingDoc = documents.find((d) => d.id === readiness.documentId);
+  const blockingDocStalled =
+    readiness.code === "PROCESSING" &&
+    !!blockingDoc &&
+    isStalledProcessing(blockingDoc.status, blockingDoc.processing_started_at);
 
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -140,8 +146,12 @@ export default function PracticeSession({
           </Button>
         ) : (
           <div className="flex flex-col gap-3">
-            {readiness.code === "PROCESSING" ? (
+            {readiness.code === "PROCESSING" && !blockingDocStalled ? (
               <ProcessingIndicator label={readinessMessage(readiness.code)} />
+            ) : blockingDocStalled ? (
+              <p className="text-sm text-weak">
+                Processing appears stuck. It&apos;s been running longer than expected.
+              </p>
             ) : (
               <p className="text-sm text-ink-muted">{readinessMessage(readiness.code)}</p>
             )}
@@ -153,22 +163,26 @@ export default function PracticeSession({
                 </Button>
               </Link>
             )}
-            {readiness.code === "PROCESSING_FAILED" && readiness.documentId && (
-              <RetryProcessingButton
-                documentId={readiness.documentId}
-                onResult={(result) =>
-                  setDocuments((prev) =>
-                    prev.map((d) =>
-                      d.id === readiness.documentId ? { ...d, ...result } : d,
-                    ),
-                  )
-                }
-              />
-            )}
-            {readiness.code === "DIAGNOSTIC_REQUIRED" && readiness.documentId && (
+            {(readiness.code === "PROCESSING_FAILED" ||
+              (readiness.code === "PROCESSING" && blockingDocStalled)) &&
+              readiness.documentId && (
+                <RetryProcessingButton
+                  documentId={readiness.documentId}
+                  onResult={(result) =>
+                    setDocuments((prev) =>
+                      prev.map((d) =>
+                        d.id === readiness.documentId
+                          ? { ...d, ...result, processing_started_at: null }
+                          : d,
+                      ),
+                    )
+                  }
+                />
+              )}
+            {readiness.code === "SETUP_REQUIRED" && readiness.documentId && (
               <Link href={`/dashboard/${readiness.documentId}`}>
                 <Button variant="secondary" className="w-fit">
-                  Go to diagnostic quiz
+                  Set up material
                 </Button>
               </Link>
             )}

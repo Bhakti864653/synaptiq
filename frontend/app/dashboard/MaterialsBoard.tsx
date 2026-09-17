@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useDocumentPolling } from "@/lib/useDocumentPolling";
 import MaterialCard from "./MaterialCard";
 
-type Document = {
+export type Document = {
   id: string;
   filename: string;
   status: string;
   error_message: string | null;
+  processing_started_at: string | null;
 };
 
 // Renders the materials grid client-side (rather than the plain server-
@@ -24,7 +25,22 @@ export default function MaterialsBoard({
   conceptsByDocument: Map<string, string[]>;
   masteryByConceptId: Map<string, number>;
 }) {
+  // Reconciles local state with a freshly server-fetched `documents` prop
+  // (a new upload, a delete, or any status/error change picked up after a
+  // router.refresh()) without an effect - this is React's own documented
+  // pattern for "adjust state when a prop changes": compare against the
+  // last-seen prop during render itself and resync immediately, rather
+  // than in a useEffect that would run one render late. `initialDocuments`
+  // is a new array reference every time the parent Server Component
+  // re-fetches, so this only fires when the data actually changes, not on
+  // every unrelated re-render (e.g. a local poll's own setDocuments call).
+  const [prevDocuments, setPrevDocuments] = useState(initialDocuments);
   const [documents, setDocuments] = useState(initialDocuments);
+  if (initialDocuments !== prevDocuments) {
+    setPrevDocuments(initialDocuments);
+    setDocuments(initialDocuments);
+  }
+
   useDocumentPolling(documents, setDocuments);
 
   function averageMastery(conceptIds: string[]) {
@@ -50,6 +66,7 @@ export default function MaterialsBoard({
               filename={doc.filename}
               status={doc.status}
               errorMessage={doc.error_message}
+              processingStartedAt={doc.processing_started_at}
               mastery={docMastery}
               featured={featured}
               onRetried={(result) =>

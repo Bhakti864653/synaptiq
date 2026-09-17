@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { authFetch } from "@/lib/authFetch";
+import { isSupportedFile, SUPPORTED_FORMATS_LABEL } from "@/lib/supportedFileTypes";
 import ErrorMessage from "@/components/ErrorMessage";
 import Card from "@/components/Card";
 import Input from "@/components/Input";
@@ -48,6 +49,15 @@ export default function DocumentUpload({
     setError(null);
     setProcessingNotice(null);
 
+    if (!isSupportedFile(file.name)) {
+      setError({
+        message: `Unsupported file type. Please upload a ${SUPPORTED_FORMATS_LABEL} file.`,
+        retry: () => uploadFile(file),
+      });
+      setUploading(false);
+      return;
+    }
+
     const supabase = createClient();
     const {
       data: { user },
@@ -87,6 +97,11 @@ export default function DocumentUpload({
       .single();
 
     if (insertError || !inserted) {
+      // The storage upload above already succeeded - without this, the
+      // file would be orphaned in storage forever (no document row ever
+      // points at it, so nothing would ever clean it up), and a retry
+      // would upload yet another copy under a new timestamped path.
+      await supabase.storage.from("study-materials").remove([storagePath]).catch(() => {});
       setError({
         message: insertError?.message ?? "Could not save document record.",
         retry: () => uploadFile(file),
@@ -94,6 +109,8 @@ export default function DocumentUpload({
       setUploading(false);
       return;
     }
+
+    const documentId = inserted.id;
 
     if (fileInputRef.current) fileInputRef.current.value = "";
     setPasteTitle("");
@@ -109,36 +126,53 @@ export default function DocumentUpload({
     // and re-triggers processing later, so this awaited call is the fast
     // path, not the only path.
     setProcessingNotice("Preparing your material...");
-    try {
-      const res = await authFetch(`/documents/${inserted.id}/process`, {
-        method: "POST",
-      });
-      if (res.ok) {
-        setProcessingNotice(null);
-      } else {
-        const body = await res.json().catch(() => ({}));
-        const detail = typeof body.detail === "string" ? body.detail : body.detail?.message;
-        setProcessingNotice(null);
-        setError({
-          message: detail ?? "Processing failed. You can retry it from the material card below.",
-          retry: () =>
-            authFetch(`/documents/${inserted.id}/process`, { method: "POST" })
-              .then(() => router.refresh())
-              .catch(() => {}),
+
+    // A resolved fetch is not the same as success - a 4xx/5xx response
+    // still resolves normally rather than throwing, so response.ok (not
+    // just "the call didn't throw") is what actually decides whether an
+    // attempt worked. Shared by the initial call and every retry from the
+    // resulting error banner, so a retry can never silently be treated as
+    // successful just because the request round-tripped.
+    async function attemptProcess(isRetry: boolean) {
+      try {
+        const res = await authFetch(`/documents/${documentId}/process`, {
+          method: "POST",
         });
+        if (res.ok) {
+          setProcessingNotice(null);
+          setError(null);
+          router.refresh();
+        } else {
+          const body = await res.json().catch(() => ({}));
+          const detail = typeof body.detail === "string" ? body.detail : body.detail?.message;
+          setProcessingNotice(null);
+          setError({
+            message:
+              detail ?? "Processing failed. You can retry it from the material card below.",
+            retry: () => attemptProcess(true),
+          });
+        }
+      } catch {
+        if (isRetry) {
+          setError({
+            message: "Couldn't reach the server. Please try again.",
+            retry: () => attemptProcess(true),
+          });
+        } else {
+          // A network failure on the very first attempt doesn't mean
+          // processing failed - it means we don't know. The document
+          // stays at "uploaded" and the polling safety net will pick it
+          // back up; no need to alarm the user for what's likely just a
+          // slow/dropped connection right after upload.
+          setProcessingNotice(
+            "Uploaded - still connecting to finish preparing it, this will resolve automatically.",
+          );
+          router.refresh();
+        }
       }
-    } catch {
-      // A network failure here doesn't mean processing failed - it means
-      // we don't know. The document stays at "uploaded" and the polling
-      // safety net will pick it back up; no need to alarm the user with a
-      // hard error for what's likely just a slow/dropped connection.
-      setProcessingNotice(
-        "Uploaded - still connecting to finish preparing it, this will resolve automatically.",
-      );
-    } finally {
-      router.refresh();
     }
 
+    await attemptProcess(false);
     setUploading(false);
   }
 
@@ -188,7 +222,7 @@ export default function DocumentUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.pptx,.ppt,.docx,.doc,.txt"
+          accept=".pdf,.pptx,.docx,.txt"
           onChange={handleFileChange}
           disabled={uploading}
           className="text-sm text-ink-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-ink file:transition-opacity hover:file:opacity-90"

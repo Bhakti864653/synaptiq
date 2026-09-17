@@ -8,7 +8,13 @@ import Card from "@/components/Card";
 import MasteryRing from "@/components/MasteryRing";
 import ProcessingIndicator from "@/components/ProcessingIndicator";
 import RetryProcessingButton from "@/components/RetryProcessingButton";
-import { isPending, isFailed, isPracticeReady, isReadyForDiagnostic } from "@/lib/documentStatus";
+import {
+  isPending,
+  isFailed,
+  isPracticeReady,
+  isReadyForSetup,
+  isStalledProcessing,
+} from "@/lib/documentStatus";
 
 function TrashIcon() {
   return (
@@ -29,6 +35,7 @@ export default function MaterialCard({
   filename,
   status,
   errorMessage = null,
+  processingStartedAt = null,
   mastery,
   featured = false,
   onRetried,
@@ -37,6 +44,7 @@ export default function MaterialCard({
   filename: string;
   status: string;
   errorMessage?: string | null;
+  processingStartedAt?: string | null;
   mastery: number | null;
   featured?: boolean;
   onRetried?: (result: { status: "processed" | "error"; error_message: string | null }) => void;
@@ -92,9 +100,21 @@ export default function MaterialCard({
             >
               {filename}
             </div>
-            {isPending(status) && <ProcessingIndicator />}
-            {isReadyForDiagnostic(status) && (
-              <p className="text-xs font-medium text-brand">Start diagnostic quiz &rarr;</p>
+            {isPending(status) &&
+              (isStalledProcessing(status, processingStartedAt) ? (
+                <div className="flex flex-col items-start gap-1.5">
+                  <p className="text-xs text-weak">Processing appears stuck.</p>
+                  {onRetried && (
+                    <div onClick={(e) => e.preventDefault()}>
+                      <RetryProcessingButton documentId={id} onResult={onRetried} />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <ProcessingIndicator />
+              ))}
+            {isReadyForSetup(status) && (
+              <p className="text-xs font-medium text-brand">Set up material &rarr;</p>
             )}
             {isPracticeReady(status) && (
               <p className="text-xs font-medium text-[var(--mastered)]">

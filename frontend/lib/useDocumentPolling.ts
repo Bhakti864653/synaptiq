@@ -9,13 +9,15 @@ export type PolledDocument = {
   id: string;
   status: string;
   error_message?: string | null;
+  processing_started_at?: string | null;
 };
 
 const POLL_INTERVAL_MS = 4000;
 
 /**
- * Keeps a list of documents' status/error_message fresh without a manual
- * page refresh. While any document is "uploaded" or "processing", polls
+ * Keeps a list of documents' status/error_message/processing_started_at
+ * fresh without a manual page refresh. While any document is "uploaded" or
+ * "processing", polls
  * Supabase directly (RLS-scoped, same read pattern this app already uses
  * for every other list) on an interval, and re-kicks off backend
  * processing for anything still stuck at "uploaded" - that covers the
@@ -74,7 +76,7 @@ export function useDocumentPolling<T extends PolledDocument>(
         const supabase = createClient();
         const { data, error } = await supabase
           .from("documents")
-          .select("id, status, error_message")
+          .select("id, status, error_message, processing_started_at")
           .in(
             "id",
             currentlyPending.map((d) => d.id),

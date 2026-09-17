@@ -26,7 +26,9 @@ export default async function DocumentPage({
 
   const { data: document } = await supabase
     .from("documents")
-    .select("id, filename, status, error_message, exam_date, hours_per_day")
+    .select(
+      "id, filename, status, error_message, processing_started_at, exam_date, hours_per_day",
+    )
     .eq("id", id)
     .single();
 
@@ -118,6 +120,7 @@ export default async function DocumentPage({
         id={document.id}
         status={document.status}
         errorMessage={document.error_message}
+        processingStartedAt={document.processing_started_at}
       />
 
       <DocumentTabs tabs={tabs} />

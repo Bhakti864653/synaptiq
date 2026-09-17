@@ -152,11 +152,16 @@ def _raise_practice_not_ready(documents: list[dict]) -> None:
 
     processed = [d for d in documents if d["status"] == "processed"]
     if processed:
+        # "processed" only means text extraction finished - it does not
+        # mean a diagnostic quiz specifically is required. study-setup lets
+        # the user choose "Starting from zero" (no diagnostic at all) or "I
+        # know some of this" (which does take a short diagnostic); either
+        # path is what actually creates concepts and reaches quiz_ready.
         raise HTTPException(
             status_code=400,
             detail={
-                "code": "DIAGNOSTIC_REQUIRED",
-                "message": "Complete the diagnostic quiz first so Synaptiq can personalize your practice.",
+                "code": "SETUP_REQUIRED",
+                "message": "Set up this material before starting personalized practice.",
                 "document_id": processed[0]["id"],
             },
         )

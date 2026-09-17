@@ -40,7 +40,14 @@ describe("PracticeSession readiness gating", () => {
   it("shows a processing message and no Start Practice button while material is preparing", () => {
     render(
       <PracticeSession
-        initialDocuments={[{ id: "d1", status: "processing", error_message: null }]}
+        initialDocuments={[
+          {
+            id: "d1",
+            status: "processing",
+            error_message: null,
+            processing_started_at: new Date().toISOString(),
+          },
+        ]}
       />,
     );
 
@@ -52,6 +59,23 @@ describe("PracticeSession readiness gating", () => {
     expect(
       screen.queryByRole("button", { name: "Start practice" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry processing" })).not.toBeInTheDocument();
+  });
+
+  it("shows a stuck-processing retry action when processing has been running too long", () => {
+    const longAgo = new Date(Date.now() - 10 * 60_000).toISOString();
+    render(
+      <PracticeSession
+        initialDocuments={[
+          { id: "d1", status: "processing", error_message: null, processing_started_at: longAgo },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText("Processing appears stuck. It's been running longer than expected."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry processing" })).toBeInTheDocument();
   });
 
   it("shows a retry action when processing failed and nothing is ready", () => {
@@ -67,7 +91,7 @@ describe("PracticeSession readiness gating", () => {
     expect(screen.getByRole("button", { name: "Retry processing" })).toBeInTheDocument();
   });
 
-  it("links to the diagnostic quiz when a document is processed but has no concepts yet", () => {
+  it("links to setup when a document is processed but has no concepts yet", () => {
     render(
       <PracticeSession
         initialDocuments={[{ id: "d1", status: "processed", error_message: null }]}
@@ -76,10 +100,10 @@ describe("PracticeSession readiness gating", () => {
 
     expect(
       screen.getByText(
-        "Complete the diagnostic quiz first so Synaptiq can personalize your practice.",
+        "Set up this material before starting personalized practice.",
       ),
     ).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: "Go to diagnostic quiz" });
+    const link = screen.getByRole("link", { name: "Set up material" });
     expect(link).toHaveAttribute("href", "/dashboard/d1");
   });
 
@@ -124,8 +148,8 @@ describe("PracticeSession readiness gating", () => {
       status: 400,
       json: async () => ({
         detail: {
-          code: "DIAGNOSTIC_REQUIRED",
-          message: "Complete the diagnostic quiz first so Synaptiq can personalize your practice.",
+          code: "SETUP_REQUIRED",
+          message: "Set up this material before starting personalized practice.",
           document_id: "d1",
         },
       }),
@@ -141,7 +165,7 @@ describe("PracticeSession readiness gating", () => {
 
     expect(
       await screen.findByText(
-        "Complete the diagnostic quiz first so Synaptiq can personalize your practice.",
+        "Set up this material before starting personalized practice.",
       ),
     ).toBeInTheDocument();
   });

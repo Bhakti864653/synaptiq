@@ -47,7 +47,7 @@ def test_raises_processing_failed_when_a_document_errored():
 def test_raises_diagnostic_required_when_a_document_is_only_processed():
     with pytest.raises(HTTPException) as exc_info:
         _raise_practice_not_ready([{"id": "d1", "status": "processed"}])
-    assert _detail(exc_info)["code"] == "DIAGNOSTIC_REQUIRED"
+    assert _detail(exc_info)["code"] == "SETUP_REQUIRED"
     assert _detail(exc_info)["document_id"] == "d1"
 
 
@@ -123,7 +123,7 @@ def test_global_practice_rejects_when_document_processed_but_no_diagnostic_yet(
 
     with pytest.raises(HTTPException) as exc_info:
         generate_global_practice(user_id="u1")
-    assert exc_info.value.detail["code"] == "DIAGNOSTIC_REQUIRED"
+    assert exc_info.value.detail["code"] == "SETUP_REQUIRED"
     assert exc_info.value.detail["document_id"] == "d1"
 
 
@@ -205,7 +205,7 @@ def test_per_document_practice_rejects_a_document_that_is_only_processed(
 
     with pytest.raises(HTTPException) as exc_info:
         generate_practice("d1", user_id="u1")
-    assert exc_info.value.detail["code"] == "DIAGNOSTIC_REQUIRED"
+    assert exc_info.value.detail["code"] == "SETUP_REQUIRED"
 
 
 def test_per_document_practice_rejects_another_users_document(monkeypatch):

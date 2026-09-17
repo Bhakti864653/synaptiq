@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   const { data: documents } = await supabase
     .from("documents")
-    .select("id, filename, status, error_message, created_at")
+    .select("id, filename, status, error_message, processing_started_at, created_at")
     .order("created_at", { ascending: false });
 
   const { data: concepts } = await supabase

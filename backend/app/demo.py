@@ -44,6 +44,14 @@ def _check_demo_rate_limit(request: Request) -> None:
     _demo_start_calls[ip] = recent
 
 # Deletion order matters: children before the parent rows they reference.
+# study_sessions has no dependents of its own (it's user-level aggregate
+# stats, not tied to a document/concept), but it does have its own FK to
+# auth.users - omitting it here left demo_start deleting the auth user
+# while a study_sessions row still referenced it, which Supabase's admin
+# API surfaces as a bare "Database error deleting user" (caught the hard
+# way: this crashed /demo/cleanup with a 502 for every account that had
+# ever answered a question, since record_study_session in streaks.py
+# writes here on every quiz/practice submission).
 DEMO_TABLES_IN_DELETE_ORDER = [
     "quiz_responses",
     "quiz_questions",
@@ -52,6 +60,7 @@ DEMO_TABLES_IN_DELETE_ORDER = [
     "concepts",
     "document_chunks",
     "documents",
+    "study_sessions",
 ]
 
 

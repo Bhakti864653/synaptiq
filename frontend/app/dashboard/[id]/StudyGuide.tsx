@@ -119,8 +119,8 @@ function StudyPlanForm({
         </Button>
       </form>
       <p className="text-xs text-ink-muted">
-        Reorders the topics you haven't passed yet by urgency, and estimates time
-        per topic. Topics you've already passed stay where they are.
+        Reorders the topics you haven&apos;t passed yet by urgency, and estimates time
+        per topic. Topics you&apos;ve already passed stay where they are.
       </p>
       {savedExamDate && (
         <p className="text-xs text-mastered">

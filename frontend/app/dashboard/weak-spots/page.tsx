@@ -61,7 +61,7 @@ export default async function WeakSpotsPage() {
       {weakSpots.length === 0 ? (
         <Card>
           <p className="text-sm text-ink-muted">
-            No weak spots right now - either you're doing well, or there's
+            No weak spots right now - either you&apos;re doing well, or there&apos;s
             nothing with a real attempt behind it yet.
           </p>
         </Card>

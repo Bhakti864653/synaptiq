@@ -4,20 +4,36 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 // Minimal shape of the non-standard SpeechRecognition API — not in TS's lib.dom by default.
+type SpeechRecognitionAlternative = { transcript: string };
+type SpeechRecognitionResultLike = {
+  length: number;
+  [index: number]: SpeechRecognitionAlternative;
+};
+type SpeechRecognitionResultListLike = {
+  length: number;
+  [index: number]: SpeechRecognitionResultLike;
+};
+type SpeechRecognitionEventLike = { results: SpeechRecognitionResultListLike };
+
 type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
   start: () => void;
   stop: () => void;
-  onresult: ((event: any) => void) | null;
-  onerror: ((event: any) => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
   onend: (() => void) | null;
+};
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
 function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
   if (typeof window === "undefined") return null;
-  const w = window as any;
+  const w = window as SpeechRecognitionWindow;
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
@@ -67,9 +83,9 @@ export function useVoiceInput() {
       recognition.interimResults = false;
       recognition.lang = "en-US";
 
-      recognition.onresult = (event: any) => {
-        transcriptRef.current = Array.from(event.results as any[])
-          .map((r: any) => r[0].transcript)
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+        transcriptRef.current = Array.from(event.results)
+          .map((r) => r[0].transcript)
           .join(" ")
           .trim();
       };

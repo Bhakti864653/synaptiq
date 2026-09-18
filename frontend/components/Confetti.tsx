@@ -38,6 +38,7 @@ export default function Confetti() {
   const [pieces, setPieces] = useState<Piece[] | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPieces(generatePieces());
     const timer = setTimeout(() => setPieces(null), LIFETIME_MS);
     return () => clearTimeout(timer);

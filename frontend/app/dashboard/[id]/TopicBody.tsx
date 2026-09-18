@@ -215,7 +215,7 @@ export default function TopicBody({
                 <p className="text-xs font-medium text-ink-muted">
                   From your material
                 </p>
-                <p className="mt-1 text-sm italic text-ink">"{guide.excerpt}"</p>
+                <p className="mt-1 text-sm italic text-ink">&quot;{guide.excerpt}&quot;</p>
               </Card>
 
               {altExplanation && (

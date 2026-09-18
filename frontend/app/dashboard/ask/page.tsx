@@ -18,7 +18,7 @@ export default async function AskPage() {
       <div className="gradient-hero rounded-2xl p-6">
         <h1 className="text-2xl font-semibold text-ink">Ask a Question</h1>
         <p className="text-sm text-ink-muted">
-          Anything at all - not just what's in your uploaded materials.
+          Anything at all - not just what&apos;s in your uploaded materials.
         </p>
       </div>
 

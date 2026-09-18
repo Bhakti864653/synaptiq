@@ -12,6 +12,10 @@ import Button from "@/components/Button";
 
 type Mode = "file" | "paste";
 
+function buildStoragePath(userId: string, filename: string) {
+  return `${userId}/${Date.now()}-${filename}`;
+}
+
 export default function DocumentUpload({
   collapsedByDefault = false,
 }: {
@@ -72,7 +76,7 @@ export default function DocumentUpload({
       return;
     }
 
-    const storagePath = `${user.id}/${Date.now()}-${file.name}`;
+    const storagePath = buildStoragePath(user.id, file.name);
 
     const { error: uploadError } = await supabase.storage
       .from("study-materials")

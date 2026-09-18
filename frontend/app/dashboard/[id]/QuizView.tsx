@@ -242,7 +242,7 @@ export default function QuizView({
 
       {status === "processed" && (
         <p className="text-sm text-ink-muted">
-          Head to the Study Guide tab to get started - it'll set up topics
+          Head to the Study Guide tab to get started - it&apos;ll set up topics
           for this material and bring you back here if you want the full
           diagnostic quiz.
         </p>

@@ -17,12 +17,7 @@ export default function SearchBox() {
 
   useEffect(() => {
     const q = query.trim();
-    if (!q) {
-      setDocs([]);
-      setConcepts([]);
-      setOpen(false);
-      return;
-    }
+    if (!q) return;
     const timeout = setTimeout(async () => {
       const supabase = createClient();
       const [{ data: docData }, { data: conceptData }] = await Promise.all([
@@ -54,6 +49,15 @@ export default function SearchBox() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (!value.trim()) {
+      setDocs([]);
+      setConcepts([]);
+      setOpen(false);
+    }
+  }
+
   function goTo(documentId: string) {
     setOpen(false);
     setQuery("");
@@ -66,7 +70,7 @@ export default function SearchBox() {
     <div ref={containerRef} className="relative min-w-0 max-w-sm flex-1">
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => handleQueryChange(e.target.value)}
         onFocus={() => query.trim() && setOpen(true)}
         placeholder="Search materials or concepts..."
         className="w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:border-brand"

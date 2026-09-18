@@ -66,7 +66,7 @@ export default function AskChat() {
       <div className="flex flex-col gap-3">
         {messages.length === 0 && (
           <p className="text-sm text-ink-muted">
-            Ask anything - a concept you're curious about, something unrelated
+            Ask anything - a concept you&apos;re curious about, something unrelated
             to your uploads, whatever. Answers are in-depth, not one-liners.
           </p>
         )}

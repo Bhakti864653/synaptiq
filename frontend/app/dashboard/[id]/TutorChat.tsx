@@ -27,6 +27,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
   // client component's function runs in the browser, but not during SSR,
   // so branching the render on it directly would mismatch the server HTML.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanSpeak(speechOutputSupported());
   }, []);
 
@@ -112,7 +113,7 @@ export default function TutorChat({ documentId }: { documentId: string }) {
       {voiceMode && (
         <p className="text-xs text-ink-muted">
           Tap the mic and just talk - your question is sent as soon as you
-          stop speaking, and the tutor's answer is read back to you.
+          stop speaking, and the tutor&apos;s answer is read back to you.
         </p>
       )}
       <div className="flex flex-col gap-3">

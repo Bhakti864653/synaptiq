@@ -44,6 +44,7 @@ export default function Sidebar() {
     // collapsed regardless of any stored value; the stored preference
     // still governs everything at tablet/desktop widths as before.
     if (window.innerWidth < 768) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(false);
       setReady(true);
       return;

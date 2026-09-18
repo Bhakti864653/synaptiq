@@ -13,8 +13,29 @@ type Tab = {
 // without doing Quiz first is normal, not "out of order". The small hub dot
 // + connecting lines carry that "all sourced from one place" feeling; the
 // active mode gets the full gradient + glow, everything else stays quiet.
-export default function DocumentTabs({ tabs }: { tabs: Tab[] }) {
-  const [activeId, setActiveId] = useState(tabs[0]?.id);
+//
+// `activeId`/`onActiveChange` are optional - uncontrolled internal state is
+// the default (unchanged from before), but a parent (the material
+// workspace's "Continue practicing" action) can pass these to jump to a
+// specific tab programmatically without owning the rest of this
+// component's behavior.
+export default function DocumentTabs({
+  tabs,
+  activeId: controlledActiveId,
+  onActiveChange,
+}: {
+  tabs: Tab[];
+  activeId?: string;
+  onActiveChange?: (id: string) => void;
+}) {
+  const [internalActiveId, setInternalActiveId] = useState(tabs[0]?.id);
+  const activeId = controlledActiveId ?? internalActiveId;
+
+  function selectTab(id: string) {
+    setInternalActiveId(id);
+    onActiveChange?.(id);
+  }
+
   const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
 
   return (
@@ -38,7 +59,7 @@ export default function DocumentTabs({ tabs }: { tabs: Tab[] }) {
               <button
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => setActiveId(tab.id)}
+                onClick={() => selectTab(tab.id)}
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                   isActive
                     ? "scale-105 bg-brand text-brand-ink shadow-[0_8px_20px_-8px_rgba(99,102,241,0.5)]"

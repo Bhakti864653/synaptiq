@@ -164,12 +164,20 @@ export default async function DashboardPage() {
         mascotExpression={heroExpression(overallMastery)}
       />
 
+      {/* min-w-0 on every grid item: without it, CSS Grid's default
+          min-width:auto lets a wide child (this constellation's own
+          glow/canvas) force the whole track - and the page - wider than
+          the viewport on narrow screens, even inside a 1-column grid. */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-        <ContinueLearning focus={continueFocus} />
-        <KnowledgeConstellation
-          data={constellationData}
-          emptyHint="Once you upload a material, your concepts will appear here as a constellation."
-        />
+        <div className="min-w-0">
+          <ContinueLearning focus={continueFocus} />
+        </div>
+        <div className="min-w-0">
+          <KnowledgeConstellation
+            data={constellationData}
+            emptyHint="Once you upload a material, your concepts will appear here as a constellation."
+          />
+        </div>
       </div>
 
       <NeedsAttentionStrip

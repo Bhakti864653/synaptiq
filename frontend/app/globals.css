@@ -90,10 +90,25 @@
   --font-fraunces: var(--font-fraunces);
 }
 
+/* The decorative glow blobs (DashboardBackdrop, LandingIllustration) are
+   deliberately larger than the viewport and offset negative so their
+   soft edge never shows a hard boundary - but a fixed-position element's
+   layout box can still force real horizontal scroll on narrow viewports
+   even though its own ancestor has overflow:hidden (fixed elements
+   aren't constrained by ancestor overflow the way normal-flow children
+   are). html is the actual root scrolling element here (confirmed live -
+   overflow-x:hidden on body alone did not stop it), so both need it; this
+   is the safe, minimal backstop rather than resizing every decorative
+   element individually. */
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
 @keyframes fade-up {

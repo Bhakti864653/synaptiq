@@ -25,41 +25,31 @@ function RotatingGroup({
   return <group ref={group}>{children}</group>;
 }
 
+// The glowing sphere mesh is purely decorative - all real interaction
+// (hover, keyboard focus, click, Enter/Space activation) happens on the
+// real HTML <button> rendered via drei's <Html>, which drei keeps
+// projected onto this node's true screen position every frame. This is
+// what makes the node genuinely keyboard-reachable: a raw three.js mesh
+// can never receive DOM focus on its own, no matter what pointer handlers
+// it has.
 function Node({
   node,
   focused,
-  onHover,
+  onFocusChange,
   onSelect,
 }: {
   node: ConstellationNode;
   focused: boolean;
-  onHover: (id: string | null) => void;
+  onFocusChange: (id: string | null) => void;
   onSelect: (node: ConstellationNode) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const active = hovered || focused;
+  const masteryText = node.mastery === null ? "not yet attempted" : `${node.mastery}% mastery`;
 
   return (
     <group position={node.position}>
-      <mesh
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHovered(true);
-          onHover(node.id);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation();
-          setHovered(false);
-          onHover(null);
-          document.body.style.cursor = "auto";
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(node);
-        }}
-        scale={active ? 1.5 : 1}
-      >
+      <mesh scale={active ? 1.5 : 1}>
         <sphereGeometry args={[0.16, 16, 16]} />
         <meshStandardMaterial
           color={node.color}
@@ -68,19 +58,37 @@ function Node({
           toneMapped={false}
         />
       </mesh>
-      {active && (
-        <Html distanceFactor={8} center style={{ pointerEvents: "none" }}>
-          <div
-            className="whitespace-nowrap rounded-[8px_3px_8px_3px] border border-line bg-surface px-2.5 py-1.5 text-xs text-ink shadow-lg"
-            role="status"
-          >
-            <div className="font-medium">{node.label}</div>
-            <div className="text-ink-muted">
-              {node.mastery === null ? "Not yet attempted" : `${node.mastery}% mastery`}
-            </div>
-          </div>
-        </Html>
-      )}
+      <Html center distanceFactor={8} style={{ pointerEvents: "auto" }}>
+        <button
+          type="button"
+          aria-label={`${node.label}, ${masteryText}. Activate to open its material.`}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          onFocus={() => onFocusChange(node.id)}
+          onBlur={() => onFocusChange(null)}
+          onClick={() => onSelect(node)}
+          style={{
+            position: "relative",
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          {active && (
+            <span
+              className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-[8px_3px_8px_3px] border border-line bg-surface px-2.5 py-1.5 text-xs text-ink shadow-lg"
+              role="status"
+            >
+              <span className="block font-medium">{node.label}</span>
+              <span className="block text-ink-muted">{masteryText}</span>
+            </span>
+          )}
+        </button>
+      </Html>
     </group>
   );
 }
@@ -89,16 +97,16 @@ export default function ConstellationScene({
   data,
   paused,
   focusedId,
+  onFocusChange,
   onSelect,
 }: {
   data: ConstellationData;
   paused: boolean;
   focusedId: string | null;
+  onFocusChange: (id: string | null) => void;
   onSelect: (node: ConstellationNode) => void;
 }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const nodesById = useMemo(() => new Map(data.nodes.map((n) => [n.id, n])), [data.nodes]);
-  const activeId = hoveredId ?? focusedId;
 
   return (
     <Canvas
@@ -130,8 +138,8 @@ export default function ConstellationScene({
           <Node
             key={node.id}
             node={node}
-            focused={node.id === activeId}
-            onHover={setHoveredId}
+            focused={node.id === focusedId}
+            onFocusChange={onFocusChange}
             onSelect={onSelect}
           />
         ))}

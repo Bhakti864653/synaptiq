@@ -7,8 +7,9 @@ import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
 import StudyGuide from "./StudyGuide";
 import TutorChat from "./TutorChat";
-import DocumentTabs from "./DocumentTabs";
 import DocumentStatusWatcher from "./DocumentStatusWatcher";
+import DocumentTabs from "./DocumentTabs";
+import MaterialWorkspace from "./MaterialWorkspace";
 
 export default async function DocumentPage({
   params,
@@ -165,37 +166,30 @@ export default async function DocumentPage({
       />
 
       {conceptCount > 0 && (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[200px_1fr]">
-          <nav aria-label="Concepts in this material" className="hidden lg:block">
-            <ul className="flex flex-col gap-1 border-l border-line pl-3">
-              {(concepts ?? []).map((c) => {
-                const score = masteryByConceptId.get(c.id) ?? null;
-                return (
-                  <li key={c.id} className="flex items-center gap-2 py-1 text-sm">
-                    <span
-                      aria-hidden
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: score === null ? "var(--line)" : masteryColorVar(score),
-                      }}
-                    />
-                    <span className="truncate text-ink-muted">{c.name}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-
-          <div className="flex flex-col gap-8">
+        <MaterialWorkspace
+          documentId={document.id}
+          concepts={(concepts ?? []).map((c) => ({
+            id: c.id,
+            name: c.name,
+            summary: c.summary,
+            excerpt: c.excerpt,
+            mastery: masteryByConceptId.get(c.id) ?? null,
+          }))}
+          visualization={
             <TopicVisualization
               documentId={document.id}
               filename={document.filename}
-              concepts={(concepts ?? []).map((c) => ({ id: c.id, name: c.name }))}
+              concepts={(concepts ?? []).map((c) => ({
+                id: c.id,
+                name: c.name,
+                summary: c.summary,
+                excerpt: c.excerpt,
+              }))}
               masteryByConceptId={masteryByConceptId}
             />
-            <DocumentTabs tabs={tabs} />
-          </div>
-        </div>
+          }
+          tabs={tabs}
+        />
       )}
 
       {conceptCount === 0 && <DocumentTabs tabs={tabs} />}

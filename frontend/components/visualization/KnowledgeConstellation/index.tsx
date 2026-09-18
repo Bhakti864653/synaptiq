@@ -39,7 +39,7 @@ export default function KnowledgeConstellation({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-ink-muted">
           {title}
@@ -65,10 +65,26 @@ export default function KnowledgeConstellation({
         </div>
       </div>
 
+      {/* No hard rectangular border - a soft atmospheric glow instead, so
+          the scene reads as part of the paper surface rather than another
+          bordered widget stacked on the page. */}
       <div
         ref={ref}
-        className="relative h-72 w-full overflow-hidden rounded-[16px_6px_16px_6px] border border-line bg-surface sm:h-80"
+        className="relative h-72 w-full overflow-hidden rounded-2xl sm:h-80"
+        aria-label={
+          data.nodes.length > 0
+            ? `Interactive knowledge constellation with ${data.nodes.length} concept${data.nodes.length === 1 ? "" : "s"}. Every concept is also available, with the same name and mastery detail, in the list view.`
+            : undefined
+        }
       >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-8 -z-10"
+          style={{
+            background:
+              "radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent-2) 20%, transparent), transparent 70%), radial-gradient(50% 50% at 80% 80%, color-mix(in srgb, #8b6bff 16%, transparent), transparent 70%)",
+          }}
+        />
         {data.nodes.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-ink-muted">
             {emptyHint}
@@ -81,6 +97,7 @@ export default function KnowledgeConstellation({
               data={data}
               paused={paused || reducedMotion}
               focusedId={focusedId}
+              onFocusChange={setFocusedId}
               onSelect={handleSelect}
             />
           )

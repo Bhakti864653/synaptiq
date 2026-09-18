@@ -106,25 +106,30 @@ const SUBJECT_PRIORITY: Exclude<VisualizationSubject, "general">[] = [
   "literature",
 ];
 
-export function detectSubject(text: string[]): VisualizationSubject {
-  const haystack = text.join(" ").toLowerCase();
-  if (!haystack.trim()) return "general";
+export type SubjectDetection = {
+  subject: VisualizationSubject;
+  confidence: number; // 0-1, roughly "how many distinct keywords matched"
+  evidence: string[];
+};
 
-  let bestSubject: VisualizationSubject = "general";
-  let bestScore = 0;
+export function detectSubjectDetailed(text: string[]): SubjectDetection {
+  const haystack = text.join(" ").toLowerCase();
+  if (!haystack.trim()) return { subject: "general", confidence: 0, evidence: [] };
+
+  let best: SubjectDetection = { subject: "general", confidence: 0, evidence: [] };
 
   for (const subject of SUBJECT_PRIORITY) {
-    const score = KEYWORDS[subject].reduce(
-      (count, keyword) => (haystack.includes(keyword) ? count + 1 : count),
-      0,
-    );
-    if (score > bestScore) {
-      bestScore = score;
-      bestSubject = subject;
+    const evidence = KEYWORDS[subject].filter((keyword) => haystack.includes(keyword));
+    if (evidence.length > best.evidence.length) {
+      best = { subject, confidence: Math.min(1, evidence.length / 3), evidence };
     }
   }
 
-  return bestScore > 0 ? bestSubject : "general";
+  return best;
+}
+
+export function detectSubject(text: string[]): VisualizationSubject {
+  return detectSubjectDetailed(text).subject;
 }
 
 export function detectSubjectForMaterial({

@@ -1,38 +1,22 @@
-import { journeyStageStatus, type JourneyStage } from "@/lib/learningJourney";
+import { JOURNEY_STAGE_LABEL, recommendedStage } from "@/lib/learningJourney";
 
-const STAGES: { id: JourneyStage; label: string }[] = [
-  { id: "read", label: "Read" },
-  { id: "recall", label: "Recall" },
-  { id: "practice", label: "Practice" },
-  { id: "review", label: "Review" },
-];
-
-// A slim, real progress indicator - status per stage comes straight from
-// journeyStageStatus (derived from the concept's own mastery score), never
-// a hardcoded "step 2 of 4" fake completion.
+// Deliberately quiet and secondary - a single honest "what's next"
+// suggestion, not a checklist of claimed-complete steps this schema can't
+// actually prove happened (see lib/learningJourney.ts).
 export default function LearningJourneyBar({ mastery }: { mastery: number | null }) {
+  const stage = recommendedStage(mastery);
+
+  if (stage === "mastered") {
+    return (
+      <p className="text-xs text-ink-muted">
+        <span className="text-[var(--mastered)]">{"✓"}</span> Mastered
+      </p>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-2" role="list" aria-label="Learning journey for this concept">
-      {STAGES.map((stage, i) => {
-        const status = journeyStageStatus(stage.id, mastery);
-        return (
-          <div key={stage.id} className="flex items-center gap-2" role="listitem">
-            {i > 0 && <span aria-hidden className="h-px w-4 bg-line" />}
-            <span
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                status === "done"
-                  ? "bg-[var(--mastered)]/15 text-[var(--mastered)]"
-                  : status === "current"
-                    ? "bg-brand text-brand-ink"
-                    : "text-ink-muted"
-              }`}
-            >
-              {status === "done" && <span aria-hidden>{"✓"}</span>}
-              {stage.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <p className="text-xs text-ink-muted">
+      Suggested next step: <span className="font-medium text-ink">{JOURNEY_STAGE_LABEL[stage]}</span>
+    </p>
   );
 }

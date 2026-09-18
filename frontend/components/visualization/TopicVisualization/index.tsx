@@ -1,4 +1,5 @@
-import { selectVisualization, type ConceptInput } from "@/lib/visualization/selectVisualization";
+import { selectVisualizationForFocus } from "@/lib/visualization/selectVisualizationForFocus";
+import type { ConceptInput } from "@/lib/visualization/selectVisualization";
 import { buildConstellationData } from "@/lib/visualization/buildConstellationData";
 import { buildProcessFlowData } from "@/lib/visualization/buildProcessFlowData";
 import KnowledgeConstellation from "../KnowledgeConstellation";
@@ -7,11 +8,21 @@ import ChemistryMolecule from "../modes/ChemistryMolecule";
 import MathSurface from "../modes/MathSurface";
 import HistoryTimeline from "../modes/HistoryTimeline";
 
-// The subject-aware visualization router. Data selection (lib/visualization
-// /selectVisualization.ts - subject, topic, evidence, confidence) is fully
-// separate from rendering (each mode below is its own component) - adding
-// a new mode later only ever means one more branch here plus one new mode
-// component, never touching the ones that already exist.
+// The subject-aware visualization router. Data selection
+// (lib/visualization/selectVisualizationForFocus.ts - subject, topic,
+// evidence, confidence, and which concept the current mode should
+// highlight) is fully separate from rendering (each mode below is its
+// own component) - adding a new mode later only ever means one more
+// branch here plus one new mode component, never touching the ones that
+// already exist.
+//
+// `selectedConceptId` is what makes this reactive to the workspace's
+// concept rail: the same mode/component type stays mounted whenever
+// possible (React only remounts a component when its type or key
+// changes), so switching which concept is highlighted inside an already-
+// showing scene never recreates the WebGL canvas - only a genuine mode
+// change (e.g. the selected concept is itself a different recognized
+// molecule) does that, which is the correct, unavoidable case for it.
 //
 // Every branch here is backed by real evidence attached to the selection
 // result (a curated molecule, a safely-parsed equation, a matched process,
@@ -24,16 +35,18 @@ export default function TopicVisualization({
   filename,
   concepts,
   masteryByConceptId,
+  selectedConceptId,
 }: {
   documentId: string;
   filename: string;
   concepts: ConceptInput[];
   masteryByConceptId: Map<string, number>;
+  selectedConceptId: string;
 }) {
-  const selection = selectVisualization({ filename, concepts });
+  const selection = selectVisualizationForFocus({ filename, concepts, selectedConceptId });
 
   if (selection.mode === "geography" && selection.geography) {
-    return <GeographyGlobe matches={selection.geography} />;
+    return <GeographyGlobe matches={selection.geography} focusedFeatureName={selection.focusedLabel} />;
   }
 
   if (selection.mode === "chemistry-molecule" && selection.molecule) {
@@ -51,7 +64,10 @@ export default function TopicVisualization({
   }
 
   if (selection.mode === "history-timeline" && selection.historyEvents) {
-    return <HistoryTimeline events={selection.historyEvents} />;
+    const focusedIndex = selection.focusedConceptId
+      ? concepts.findIndex((c) => c.id === selection.focusedConceptId)
+      : null;
+    return <HistoryTimeline events={selection.historyEvents} focusedConceptIndex={focusedIndex} />;
   }
 
   if (selection.mode === "biology-process" && selection.biologyProcess) {
@@ -67,6 +83,8 @@ export default function TopicVisualization({
         data={data}
         title={`${selection.biologyProcess.process.name} - process flow`}
         emptyHint="Concepts for this process will appear here once available."
+        activeLabel={selection.focusedConceptId ? selection.focusedLabel : null}
+        focusedConceptId={selection.focusedConceptId}
       />
     );
   }
@@ -82,6 +100,8 @@ export default function TopicVisualization({
         data={data}
         title="Character & theme network"
         emptyHint="Concepts for this material will appear here once it's set up."
+        activeLabel={selection.focusedLabel}
+        focusedConceptId={selection.focusedConceptId}
       />
     );
   }
@@ -107,6 +127,8 @@ export default function TopicVisualization({
       data={data}
       title={conceptTitle}
       emptyHint="Concepts for this material will appear here once it's set up."
+      activeLabel={selection.focusedLabel}
+      focusedConceptId={selection.focusedConceptId}
     />
   );
 }

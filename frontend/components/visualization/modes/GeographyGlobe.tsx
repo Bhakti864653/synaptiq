@@ -8,7 +8,13 @@ import type { GeographyConceptMatch } from "@/lib/visualization/extractGeography
 
 const GeographyGlobeScene = dynamic(() => import("./GeographyGlobeScene"), { ssr: false });
 
-export default function GeographyGlobe({ matches }: { matches: GeographyConceptMatch[] }) {
+export default function GeographyGlobe({
+  matches,
+  focusedFeatureName,
+}: {
+  matches: GeographyConceptMatch[];
+  focusedFeatureName?: string | null;
+}) {
   const [resetToken, setResetToken] = useState(0);
   const recognized = matches.filter((m) => m.feature !== null);
   const unrecognized = matches.filter((m) => m.feature === null);
@@ -21,6 +27,11 @@ export default function GeographyGlobe({ matches }: { matches: GeographyConceptM
   return (
     <VisualizationFrame
       title="Geography visualization"
+      activeLabel={
+        focusedFeatureName && recognized.some((m) => m.feature!.name === focusedFeatureName)
+          ? focusedFeatureName
+          : null
+      }
       caption={caption}
       ariaLabel="Interactive conceptual globe. Drag to rotate, scroll to zoom. Verified locations are also listed in the list view."
       extraControls={() => (
@@ -37,6 +48,7 @@ export default function GeographyGlobe({ matches }: { matches: GeographyConceptM
           markers={recognized.map((m) => ({ label: m.label, feature: m.feature! }))}
           paused={paused}
           resetToken={resetToken}
+          focusedFeatureName={focusedFeatureName}
         />
       )}
       renderFallback={() => (

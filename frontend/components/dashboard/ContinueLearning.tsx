@@ -25,25 +25,28 @@ export default function ContinueLearning({ focus }: { focus: ContinueLearningFoc
   const hasConcept = focus.conceptName !== null;
 
   return (
-    <section className="flex flex-col gap-4">
-      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-brand">
+    <section className="flex flex-col gap-5">
+      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
         Continue learning
       </span>
-      <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-        <MasteryRing score={focus.mastery} size={72} />
+      <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+        <MasteryRing score={focus.mastery} size={88} />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-2xl font-medium text-ink" style={{ fontFamily: "var(--font-fraunces)" }}>
+          <h2
+            className="text-3xl font-medium leading-[1.15] text-ink sm:text-4xl"
+            style={{ fontFamily: "var(--font-fraunces)" }}
+          >
             {focus.conceptName ?? focus.filename}
           </h2>
-          {hasConcept && <p className="text-sm text-ink-muted">{focus.filename}</p>}
+          {hasConcept && <p className="mt-1 text-sm text-ink-muted">{focus.filename}</p>}
           {focus.conceptSummary && (
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted">
               {focus.conceptSummary}
             </p>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Link href={`/dashboard/${focus.documentId}`}>
           <Button variant="primary">
             {hasConcept ? "Continue practicing" : "Set up material"}

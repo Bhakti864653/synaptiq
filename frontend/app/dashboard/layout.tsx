@@ -16,7 +16,13 @@ export default function DashboardLayout({
         <TopNav showLogout />
         <div className="flex flex-1">
           <Sidebar />
-          <div className="flex-1">{children}</div>
+          {/* min-w-0: a flex item defaults to min-width:auto, which can
+              keep it pinned to its content's full intrinsic width and
+              force real horizontal overflow on narrow screens once any
+              page's content is wide enough to hit it - this is the one
+              shared wrapper around every dashboard page, so the fix
+              belongs here rather than on each page individually. */}
+          <div className="min-w-0 flex-1">{children}</div>
         </div>
       </div>
       <MascotCompanion />

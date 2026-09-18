@@ -1,12 +1,47 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import MaterialWorkspace from "../MaterialWorkspace";
+
+// The visualization's general/fallback path (KnowledgeConstellation) calls
+// useRouter() to navigate on node selection - not exercised by these
+// tests, but it must be mounted for the component tree to render at all.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 // jsdom doesn't implement scrollIntoView at all - the "Continue practicing"
 // action calls it to bring the tabs into view, which is harmless UX sugar
 // that has nothing to do with what these tests actually verify.
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+// The visualization now renders for real (in its jsdom fallback form,
+// since there's no WebGL here) inside this component - its own hooks
+// (useReducedMotion, useInView) need the same stubs its own test suite
+// uses, since jsdom implements neither matchMedia nor IntersectionObserver.
+window.matchMedia =
+  window.matchMedia ||
+  ((query: string) =>
+    ({
+      matches: false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }) as unknown as MediaQueryList);
+
+class FakeIntersectionObserver {
+  callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  observe() {
+    this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this as never);
+  }
+  disconnect() {}
+  unobserve() {}
+}
+// @ts-expect-error - test-only stub, not a full IntersectionObserver
+global.IntersectionObserver = FakeIntersectionObserver;
 
 const concepts = [
   {
@@ -44,7 +79,7 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={concepts}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );
@@ -57,12 +92,18 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={[concepts[0]]}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );
+    // The key idea renders inside curly editorial quotes as several text
+    // nodes, so match on the quoted form specifically - the plain-text
+    // full-summary paragraph below it also contains this same sentence as
+    // a substring (it's the same real source text), but never in quotes.
     expect(
-      screen.getByText("Glycolysis breaks down glucose into pyruvate."),
+      screen.getByText(
+        (_, el) => (el?.textContent ?? "") === "“Glycolysis breaks down glucose into pyruvate.”",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -72,11 +113,16 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={concepts}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );
-    await user.click(screen.getByRole("button", { name: /Electron Transport Chain/ }));
+    // With these exact concepts, the biology-process visualization now
+    // also renders nodes named after the same real concepts - scope to
+    // the rail specifically so this exercises rail selection, not
+    // whichever same-named control happens to be found first.
+    const rail = within(screen.getByRole("navigation", { name: "Concepts in this material" }));
+    await user.click(rail.getByRole("button", { name: /Electron Transport Chain/ }));
     expect(screen.getByRole("heading", { name: "Electron Transport Chain" })).toBeInTheDocument();
   });
 
@@ -85,11 +131,12 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={concepts}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );
-    const glycolysisButton = screen.getByRole("button", { name: /Glycolysis/ });
+    const rail = within(screen.getByRole("navigation", { name: "Concepts in this material" }));
+    const glycolysisButton = rail.getByRole("button", { name: /Glycolysis/ });
     expect(glycolysisButton.textContent).toContain("✓");
   });
 
@@ -99,7 +146,7 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={concepts}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );
@@ -113,7 +160,7 @@ describe("MaterialWorkspace", () => {
       <MaterialWorkspace
         documentId="doc-1"
         concepts={[concepts[2]]}
-        visualization={<div>viz</div>}
+        filename="Cell Biology.pdf"
         tabs={tabs}
       />,
     );

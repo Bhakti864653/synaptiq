@@ -31,7 +31,7 @@ export function ConceptRail({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav aria-label="Concepts in this material" className="hidden lg:block">
+    <nav aria-label="Concepts in this material" className="hidden xl:block">
       <ul className="flex flex-col gap-0.5 border-l border-line pl-3">
         {concepts.map((concept) => {
           const status = statusFor(concept, currentId);
@@ -89,7 +89,7 @@ export function ConceptMobileSelect({
   onSelect: (id: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 lg:hidden">
+    <label className="flex flex-col gap-1 xl:hidden">
       <span className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
         Jump to concept
       </span>

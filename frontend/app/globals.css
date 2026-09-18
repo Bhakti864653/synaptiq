@@ -109,6 +109,13 @@ body {
   color: var(--ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
+  /* A very quiet paper grain - an inline SVG fractal-noise texture at low
+     opacity, layered over the flat paper color rather than replacing it.
+     Deliberately not a gradient (see the "no large gradients behind every
+     section" rule) - this is texture, not lighting, and stays this subtle
+     in both themes since it rides on top of whichever --paper is active. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
 @keyframes fade-up {

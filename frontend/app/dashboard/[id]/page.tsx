@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { masteryColorVar } from "@/lib/mastery";
-import TopicVisualization from "@/components/visualization/TopicVisualization";
 import Flashcards from "./Flashcards";
 import QuizView from "./QuizView";
 import StudyGuide from "./StudyGuide";
@@ -118,7 +117,7 @@ export default async function DocumentPage({
     (concepts ?? []).find((c) => (masteryByConceptId.get(c.id) ?? 0) < 80) ?? concepts?.[0];
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-1 border-b border-line pb-5">
         <Link href="/dashboard" className="w-fit text-sm text-ink-muted hover:text-ink">
           &larr; Back to your library
@@ -130,29 +129,32 @@ export default async function DocumentPage({
           {document.filename}
         </h1>
         {conceptCount > 0 && (
-          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-            <span>
-              {conceptCount} concept{conceptCount === 1 ? "" : "s"}
-            </span>
-            {overallMastery !== null && (
-              <>
-                <span aria-hidden className="h-3.5 w-px bg-line" />
-                <span className="flex items-center gap-1.5">
-                  <span
-                    aria-hidden
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: masteryColorVar(overallMastery) }}
-                  />
-                  {overallMastery}% mastery
-                </span>
-              </>
-            )}
-            {currentFocus && (
-              <>
-                <span aria-hidden className="h-3.5 w-px bg-line" />
-                <span>Currently on: {currentFocus.name}</span>
-              </>
-            )}
+          <div className="mt-1 flex flex-col gap-1 text-sm text-ink-muted">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>
+                {conceptCount} concept{conceptCount === 1 ? "" : "s"}
+              </span>
+              {overallMastery !== null && (
+                <>
+                  <span aria-hidden className="h-3.5 w-px bg-line" />
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: masteryColorVar(overallMastery) }}
+                    />
+                    {overallMastery}% mastery
+                  </span>
+                </>
+              )}
+            </div>
+            {/* Its own block-level line rather than another flex item -
+                a flex item's automatic sizing can keep it pinned to its
+                full unwrapped content width even with min-w-0 once it's
+                alone on a wrapped line, which doesn't happen to a plain
+                block element, so long concept names always wrap cleanly
+                on narrow screens. */}
+            {currentFocus && <p>Currently on: {currentFocus.name}</p>}
           </div>
         )}
       </div>
@@ -168,6 +170,7 @@ export default async function DocumentPage({
       {conceptCount > 0 && (
         <MaterialWorkspace
           documentId={document.id}
+          filename={document.filename}
           concepts={(concepts ?? []).map((c) => ({
             id: c.id,
             name: c.name,
@@ -175,24 +178,15 @@ export default async function DocumentPage({
             excerpt: c.excerpt,
             mastery: masteryByConceptId.get(c.id) ?? null,
           }))}
-          visualization={
-            <TopicVisualization
-              documentId={document.id}
-              filename={document.filename}
-              concepts={(concepts ?? []).map((c) => ({
-                id: c.id,
-                name: c.name,
-                summary: c.summary,
-                excerpt: c.excerpt,
-              }))}
-              masteryByConceptId={masteryByConceptId}
-            />
-          }
           tabs={tabs}
         />
       )}
 
-      {conceptCount === 0 && <DocumentTabs tabs={tabs} />}
+      {conceptCount === 0 && (
+        <div className="mx-auto w-full max-w-2xl">
+          <DocumentTabs tabs={tabs} />
+        </div>
+      )}
     </main>
   );
 }

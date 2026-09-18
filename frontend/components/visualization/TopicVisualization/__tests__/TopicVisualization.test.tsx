@@ -31,6 +31,7 @@ describe("TopicVisualization router", () => {
         filename="World Geography.pdf"
         concepts={[{ id: "c1", name: "Mountain Ranges" }, { id: "c2", name: "Ocean Currents" }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("geography");
@@ -43,6 +44,7 @@ describe("TopicVisualization router", () => {
         filename="Chemistry Basics.pdf"
         concepts={[{ id: "c1", name: "Water" }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("chemistry-molecule");
@@ -55,6 +57,7 @@ describe("TopicVisualization router", () => {
         filename="Chemistry Basics.pdf"
         concepts={[{ id: "c1", name: "Chemical Bonds" }, { id: "c2", name: "Reaction Rates" }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("Chemistry concepts");
@@ -67,6 +70,7 @@ describe("TopicVisualization router", () => {
         filename="Calculus Notes.pdf"
         concepts={[{ id: "c1", name: "Derivatives", summary: "y = x^2 is a simple example." }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("math-graph");
@@ -79,6 +83,7 @@ describe("TopicVisualization router", () => {
         filename="Calculus Notes.pdf"
         concepts={[{ id: "c1", name: "Derivatives" }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("Math concepts");
@@ -94,6 +99,7 @@ describe("TopicVisualization router", () => {
           { id: "c2", name: "WWII", summary: "Began in 1939." },
         ]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("history-timeline");
@@ -109,6 +115,7 @@ describe("TopicVisualization router", () => {
           { id: "c2", name: "Theme of Isolation" },
         ]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("Character & theme network");
@@ -121,6 +128,7 @@ describe("TopicVisualization router", () => {
         filename="Random Notes.txt"
         concepts={[{ id: "c1", name: "Thing One" }]}
         masteryByConceptId={new Map()}
+        selectedConceptId="c1"
       />,
     );
     expect(screen.getByTestId("mode")).toHaveTextContent("Topic visualization");

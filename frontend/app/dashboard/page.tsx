@@ -153,7 +153,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 p-6">
       <GreetingHeader
         name={displayName}
         materialCount={documents?.length ?? 0}
@@ -164,11 +164,14 @@ export default async function DashboardPage() {
         mascotExpression={heroExpression(overallMastery)}
       />
 
-      {/* min-w-0 on every grid item: without it, CSS Grid's default
-          min-width:auto lets a wide child (this constellation's own
-          glow/canvas) force the whole track - and the page - wider than
-          the viewport on narrow screens, even inside a 1-column grid. */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+      {/* Deliberately asymmetric, not two equal generic columns - the
+          constellation gets real extra room on wide screens so it reads
+          as a hero element rather than a sidebar widget. min-w-0 on every
+          grid item: without it, CSS Grid's default min-width:auto lets a
+          wide child (this constellation's own glow/canvas) force the
+          whole track - and the page - wider than the viewport on narrow
+          screens, even inside a 1-column grid. */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start">
         <div className="min-w-0">
           <ContinueLearning focus={continueFocus} />
         </div>

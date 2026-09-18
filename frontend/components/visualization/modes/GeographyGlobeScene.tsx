@@ -37,12 +37,17 @@ function conceptualTerrainGeometry(): THREE.BufferGeometry {
   return geometry;
 }
 
-function Marker({ marker }: { marker: SceneMarker }) {
+function Marker({ marker, focused }: { marker: SceneMarker; focused: boolean }) {
   const position = latLonToVector3(marker.feature.lat, marker.feature.lon, 3.06);
   return (
-    <mesh position={position}>
+    <mesh position={position} scale={focused ? 1.8 : 1}>
       <sphereGeometry args={[0.09, 12, 12]} />
-      <meshStandardMaterial color="#ef6a4c" emissive="#ef6a4c" emissiveIntensity={0.8} toneMapped={false} />
+      <meshStandardMaterial
+        color="#ef6a4c"
+        emissive="#ef6a4c"
+        emissiveIntensity={focused ? 1.4 : 0.8}
+        toneMapped={false}
+      />
     </mesh>
   );
 }
@@ -51,10 +56,12 @@ export default function GeographyGlobeScene({
   markers,
   paused,
   resetToken,
+  focusedFeatureName,
 }: {
   markers: SceneMarker[];
   paused: boolean;
   resetToken: number;
+  focusedFeatureName?: string | null;
 }) {
   const terrainGeometry = useMemo(() => conceptualTerrainGeometry(), []);
   const controlsRef = useRef<React.ElementRef<typeof OrbitControls>>(null);
@@ -86,7 +93,7 @@ export default function GeographyGlobeScene({
         return <Line key={lat} points={points} color="#f2a63f" transparent opacity={0.18} lineWidth={1} />;
       })}
       {markers.map((m, i) => (
-        <Marker key={i} marker={m} />
+        <Marker key={i} marker={m} focused={m.feature.name === focusedFeatureName} />
       ))}
 
       <OrbitControls

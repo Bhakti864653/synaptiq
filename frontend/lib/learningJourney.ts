@@ -1,31 +1,20 @@
-// The Read -> Recall -> Practice -> Review journey for one concept,
-// derived entirely from its real mastery score - never a fabricated
-// progress indicator. "Read" is always reached once a concept is the one
-// being viewed; the other three stages require increasing real evidence
-// of practice (an attempted score, a passing score, a mastered score).
-export type JourneyStage = "read" | "recall" | "practice" | "review";
+// A single recommended next step, not a row of "completed" claims - this
+// schema has one mastery score per concept, not separately-recorded
+// read/recall/practice/review events, so a 4-item checklist with
+// checkmarks would be claiming completion the data can't actually prove.
+// Presented instead as "what to do next," derived honestly from the one
+// real signal available.
+export type JourneyStage = "recall" | "practice" | "review";
 
-export function journeyStageStatus(
-  stage: JourneyStage,
-  mastery: number | null,
-): "done" | "current" | "upcoming" {
-  const stages: JourneyStage[] = ["read", "recall", "practice", "review"];
-  const reached: Record<JourneyStage, boolean> = {
-    read: true,
-    recall: mastery !== null,
-    practice: mastery !== null && mastery >= 50,
-    review: mastery !== null && mastery >= 80,
-  };
-
-  if (reached[stage]) {
-    const nextStage = stages[stages.indexOf(stage) + 1];
-    // The frontier stage - reached, but the next one isn't yet - reads as
-    // "current" rather than "done", so the journey always shows exactly
-    // one active step instead of every reached step looking identical.
-    // The final stage, once reached, is simply complete - there's no
-    // further stage left to be a frontier against.
-    if (nextStage && !reached[nextStage]) return "current";
-    return "done";
-  }
-  return "upcoming";
+export function recommendedStage(mastery: number | null): JourneyStage | "mastered" {
+  if (mastery === null) return "recall";
+  if (mastery < 50) return "practice";
+  if (mastery < 80) return "review";
+  return "mastered";
 }
+
+export const JOURNEY_STAGE_LABEL: Record<JourneyStage, string> = {
+  recall: "Recall",
+  practice: "Practice",
+  review: "Review",
+};

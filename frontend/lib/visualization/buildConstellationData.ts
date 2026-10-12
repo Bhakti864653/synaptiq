@@ -9,6 +9,7 @@ export type ConstellationNode = {
   label: string;
   documentId: string;
   documentLabel: string;
+  summary?: string | null;
   mastery: number | null;
   position: [number, number, number];
   color: string;
@@ -57,7 +58,7 @@ export function buildConstellationData({
   documents,
   masteryByConceptId,
 }: {
-  concepts: { id: string; name: string; document_id: string }[];
+  concepts: { id: string; name: string; document_id: string; summary?: string | null }[];
   documents: { id: string; filename: string }[];
   masteryByConceptId: Map<string, number>;
 }): ConstellationData {
@@ -86,6 +87,7 @@ export function buildConstellationData({
         label: concept.name,
         documentId,
         documentLabel: documentLabelById.get(documentId) ?? "Untitled material",
+        summary: concept.summary ?? null,
         mastery,
         position: [
           clusterCenter[0] + localOffset[0],

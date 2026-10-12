@@ -6,7 +6,7 @@ import type { ConstellationData } from "@/lib/visualization/buildConstellationDa
 // grouped by real source material, each concept a real link to that
 // material's page. Not gated behind "WebGL failed"; anyone can reach for
 // this instead of the visual scene.
-export default function ConstellationListView({ data }: { data: ConstellationData }) {
+export default function ConstellationListView({ data, onSelect }: { data: ConstellationData; onSelect?: (node: ConstellationData["nodes"][number]) => void }) {
   const byDocument = new Map<string, { label: string; nodes: ConstellationData["nodes"] }>();
   for (const node of data.nodes) {
     const entry = byDocument.get(node.documentId) ?? { label: node.documentLabel, nodes: [] };
@@ -35,10 +35,7 @@ export default function ConstellationListView({ data }: { data: ConstellationDat
           <ul className="flex flex-col gap-1">
             {group.nodes.map((node) => (
               <li key={node.id}>
-                <Link
-                  href={`/dashboard/${node.documentId}`}
-                  className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1 hover:bg-line/40"
-                >
+                {onSelect ? <button type="button" onClick={() => onSelect(node)} className="flex w-full items-center justify-between gap-3 rounded-md px-1.5 py-1 text-left hover:bg-line/40">
                   <span className="text-sm text-ink">{node.label}</span>
                   <span className="flex items-center gap-1.5 text-xs text-ink-muted">
                     <span
@@ -51,7 +48,10 @@ export default function ConstellationListView({ data }: { data: ConstellationDat
                     />
                     {node.mastery === null ? "Not started" : `${node.mastery}%`}
                   </span>
-                </Link>
+                </button> : <Link href={`/dashboard/${node.documentId}?concept=${encodeURIComponent(node.id)}`} className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1 hover:bg-line/40">
+                  <span className="text-sm text-ink">{node.label}</span>
+                  <span className="text-xs text-ink-muted">{node.mastery === null ? "Not started" : `${node.mastery}%`}</span>
+                </Link>}
               </li>
             ))}
           </ul>

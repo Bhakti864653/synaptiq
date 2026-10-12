@@ -68,14 +68,15 @@ export default async function ProgressPage() {
   }));
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-6">
+    <main className="syn-page mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-20 pt-8 sm:px-10">
       <StreakGreeting streak={currentStreak} />
-      <div className="gradient-hero rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold text-ink">Progress</h1>
-        <p className="text-sm text-ink-muted">
+      <header className="syn-inner-header">
+        <span className="syn-eyebrow">Your learning / Progress</span>
+        <h1 className="syn-section-title">Look how far <em>you&apos;ve come.</em></h1>
+        <p className="syn-lead">
           How your understanding is trending over time.
         </p>
-      </div>
+      </header>
 
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between">

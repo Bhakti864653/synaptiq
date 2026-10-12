@@ -14,13 +14,14 @@ export default async function AskPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      <div className="gradient-hero rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold text-ink">Ask a Question</h1>
-        <p className="text-sm text-ink-muted">
+    <main className="syn-page mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-20 pt-8 sm:px-10">
+      <header className="syn-inner-header">
+        <span className="syn-eyebrow">Your learning / Ask Synaptiq</span>
+        <h1 className="syn-section-title">Curiosity <em>welcome.</em></h1>
+        <p className="syn-lead">
           Anything at all - not just what&apos;s in your uploaded materials.
         </p>
-      </div>
+      </header>
 
       <AskChat />
     </main>

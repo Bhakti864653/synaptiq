@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 import { SynaptiqMark } from "@/components/logo";
 
 const mainLinks = [
-  { href: "/dashboard", label: "Study Materials" },
+  { href: "/dashboard", label: "My learning" },
   { href: "/dashboard/practice", label: "Practice" },
-  { href: "/dashboard/weak-spots", label: "Weak Spots" },
-  { href: "/dashboard/ask", label: "Ask a Tutor" },
-  { href: "/dashboard/progress", label: "Progress/History" },
+  { href: "/dashboard/weak-spots", label: "Focus areas" },
+  { href: "/dashboard/ask", label: "Ask Synaptiq" },
+  { href: "/dashboard/progress", label: "Progress" },
 ];
 
 const utilityLinks = [

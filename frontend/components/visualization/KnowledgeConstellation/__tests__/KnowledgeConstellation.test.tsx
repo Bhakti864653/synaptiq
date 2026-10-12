@@ -79,7 +79,19 @@ describe("KnowledgeConstellation", () => {
     const user = userEvent.setup();
     render(<KnowledgeConstellation data={sampleData} />);
     await user.click(screen.getByRole("button", { name: /Mitochondria/i }));
-    expect(pushMock).toHaveBeenCalledWith("/dashboard/doc-1");
+    expect(pushMock).toHaveBeenCalledWith("/dashboard/doc-1?concept=c1");
+  });
+
+  it("reveals the selected concept and a direct study action on the dashboard", async () => {
+    const user = userEvent.setup();
+    render(<KnowledgeConstellation data={sampleData} interactiveSelection />);
+    await user.click(screen.getByRole("button", { name: /Photosynthesis: not yet attempted/i }));
+    expect(screen.getByRole("heading", { name: "Photosynthesis" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Study this concept/i })).toHaveAttribute(
+      "href",
+      "/dashboard/doc-1?concept=c2",
+    );
+    expect(pushMock).not.toHaveBeenCalledWith("/dashboard/doc-1?concept=c2");
   });
 
   it("toggles to the accessible list view and shows real mastery values", async () => {

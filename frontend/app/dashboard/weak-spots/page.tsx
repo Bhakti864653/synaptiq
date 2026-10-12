@@ -43,14 +43,15 @@ export default async function WeakSpotsPage() {
     .sort((a, b) => a.score - b.score);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <div className="gradient-hero rounded-2xl p-6">
-        <h1 className="text-2xl font-semibold text-ink">Weak Spots</h1>
-        <p className="text-sm text-ink-muted">
+    <main className="syn-page mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-20 pt-8 sm:px-10">
+      <header className="syn-inner-header">
+        <span className="syn-eyebrow">Your learning / Focus areas</span>
+        <h1 className="syn-section-title">A clearer way <em>forward.</em></h1>
+        <p className="syn-lead">
           Every concept under 60% mastery, across all your materials, weakest
           first.
         </p>
-      </div>
+      </header>
 
       {weakSpots.length > 0 && (
         <Link href="/dashboard/practice" className="w-fit">
@@ -73,7 +74,7 @@ export default async function WeakSpotsPage() {
             return (
               <Link
                 key={c.id}
-                href={`/dashboard/${doc.id}`}
+                href={`/dashboard/${doc.id}?concept=${encodeURIComponent(c.id)}`}
                 className="flex items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-line/40"
               >
                 <span className="text-sm text-ink">

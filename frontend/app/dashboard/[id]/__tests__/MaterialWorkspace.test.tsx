@@ -74,6 +74,19 @@ const tabs = [
 ];
 
 describe("MaterialWorkspace", () => {
+  it("opens a concept linked from the dashboard map", () => {
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        initialConceptId="c3"
+        tabs={tabs}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Electron Transport Chain" })).toBeInTheDocument();
+  });
+
   it("focuses the first not-yet-mastered real concept by default, not just the first one", () => {
     render(
       <MaterialWorkspace

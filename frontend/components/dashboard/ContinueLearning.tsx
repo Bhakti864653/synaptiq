@@ -4,6 +4,7 @@ import MasteryRing from "@/components/MasteryRing";
 
 export type ContinueLearningFocus = {
   documentId: string;
+  conceptId: string | null;
   filename: string;
   conceptName: string | null;
   conceptSummary: string | null;
@@ -23,6 +24,7 @@ export default function ContinueLearning({ focus }: { focus: ContinueLearningFoc
   // back to the filename as the headline, and don't repeat it a second
   // time as a subtitle right underneath itself.
   const hasConcept = focus.conceptName !== null;
+  const destination = `/dashboard/${focus.documentId}${focus.conceptId ? `?concept=${encodeURIComponent(focus.conceptId)}` : ""}`;
 
   return (
     <section className="syn-next-content">
@@ -42,14 +44,14 @@ export default function ContinueLearning({ focus }: { focus: ContinueLearningFoc
         <MasteryRing score={focus.mastery} size={88} />
       </div>
       <div className="syn-next-actions">
-        <Link href={`/dashboard/${focus.documentId}`}>
+        <Link href={destination}>
           <Button variant="primary">
             {hasConcept ? "Continue practicing" : "Set up material"}
           </Button>
         </Link>
         {hasConcept && (
           <Link
-            href={`/dashboard/${focus.documentId}`}
+            href={destination}
             className="text-sm font-medium text-ink-muted hover:text-ink"
           >
             Ask Synaptiq about this &rarr;

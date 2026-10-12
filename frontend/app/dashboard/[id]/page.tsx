@@ -12,10 +12,13 @@ import MaterialWorkspace from "./MaterialWorkspace";
 
 export default async function DocumentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ concept?: string }>;
 }) {
   const { id } = await params;
+  const { concept: requestedConceptId } = (await searchParams) ?? {};
   const supabase = await createClient();
 
   const {
@@ -169,6 +172,7 @@ export default async function DocumentPage({
         <MaterialWorkspace
           documentId={document.id}
           filename={document.filename}
+          initialConceptId={requestedConceptId}
           concepts={(concepts ?? []).map((c) => ({
             id: c.id,
             name: c.name,

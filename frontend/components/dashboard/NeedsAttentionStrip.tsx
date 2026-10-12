@@ -36,7 +36,7 @@ export default function NeedsAttentionStrip({
         {items.map((item) => (
           <Link
             key={item.conceptId}
-            href={`/dashboard/${item.documentId}`}
+            href={`/dashboard/${item.documentId}?concept=${encodeURIComponent(item.conceptId)}`}
             className="group flex flex-1 items-center gap-2.5 py-2.5 pl-0 pr-4 sm:px-4 sm:first:pl-0"
           >
             <span

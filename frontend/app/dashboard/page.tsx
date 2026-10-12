@@ -116,6 +116,7 @@ export default async function DashboardPage() {
     continueFocus = {
       documentId: continueDocument.id,
       filename: continueDocument.filename,
+      conceptId: nextConcept?.id ?? null,
       conceptName: nextConcept?.name ?? null,
       conceptSummary: nextConcept?.summary ?? null,
       mastery: nextConcept ? masteryByConceptId.get(nextConcept.id) ?? 0 : null,
@@ -127,6 +128,7 @@ export default async function DashboardPage() {
       id: c.id,
       name: c.name,
       document_id: c.document_id,
+      summary: c.summary,
     })),
     documents: documents ?? [],
     masteryByConceptId,
@@ -166,22 +168,34 @@ export default async function DashboardPage() {
         mascotExpression={heroExpression(overallMastery)}
       />
 
+      {continueFocus && (
+        <div className="syn-priority"><ContinueLearning focus={continueFocus} /></div>
+      )}
+
       <section className="syn-map-section" aria-label="Your learning map">
         <div className="syn-map-heading">
           <div><span className="syn-eyebrow">01 / The big picture</span><h2 className="syn-section-title">Where knowledge <em>connects.</em></h2></div>
-          <p>Each point is a concept from your materials. Explore the connections, then choose where to go next.</p>
+          <div className="syn-map-explainer">
+            <p>Each point is a concept from your materials. Choose one to see what you know and study it.</p>
+            <div className="syn-map-legend" aria-label="Map color key">
+              <span title="80% mastery or more"><i style={{ background: "#f2a63f" }} /> Strong</span>
+              <span title="50 to 79% mastery"><i style={{ background: "#ef6a4c" }} /> Growing</span>
+              <span title="Under 50% or not attempted yet"><i style={{ background: "#8b6bff" }} /> Needs a spark</span>
+            </div>
+          </div>
         </div>
         <div className="syn-map-stage">
           <span className="syn-stage-stamp" aria-hidden="true">YOUR IDEAS / IN MOTION</span>
           <KnowledgeConstellation
             data={constellationData}
+            interactiveSelection
+            initialFocusedId={continueFocus?.conceptId ?? null}
             emptyHint="Once you upload a material, your concepts will appear here as a constellation."
           />
         </div>
       </section>
 
       <div className="syn-dashboard-lower">
-        <div className="syn-next-panel"><ContinueLearning focus={continueFocus} /></div>
         <div className="syn-attention-panel"><NeedsAttentionStrip
           items={weakSpots.map((c) => ({
             conceptId: c.id,

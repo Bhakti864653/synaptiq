@@ -19,11 +19,13 @@ type Tab = { id: string; label: string; content: React.ReactNode };
 export default function MaterialWorkspace({
   documentId,
   filename,
+  initialConceptId,
   concepts,
   tabs,
 }: {
   documentId: string;
   filename: string;
+  initialConceptId?: string;
   concepts: WorkspaceConcept[];
   tabs: Tab[];
 }) {
@@ -32,7 +34,9 @@ export default function MaterialWorkspace({
     return (notMastered ?? concepts[0])?.id ?? null;
   }, [concepts]);
 
-  const [selectedId, setSelectedId] = useState(currentId ?? concepts[0]?.id);
+  const [selectedId, setSelectedId] = useState(() =>
+    concepts.some((c) => c.id === initialConceptId) ? initialConceptId : currentId ?? concepts[0]?.id,
+  );
   const [activeTabId, setActiveTabId] = useState<string | undefined>(undefined);
   const tabsRef = useRef<HTMLDivElement>(null);
 

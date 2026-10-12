@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { ConstellationData, ConstellationNode } from "@/lib/visualization/buildConstellationData";
@@ -22,6 +23,8 @@ export default function KnowledgeConstellation({
   emptyHint = "Upload a material to see your first concepts appear here.",
   activeLabel,
   focusedConceptId: externalFocusedId,
+  interactiveSelection = false,
+  initialFocusedId = null,
 }: {
   data: ConstellationData;
   title?: string;
@@ -34,6 +37,8 @@ export default function KnowledgeConstellation({
   // real, local hover/keyboard focus still takes priority over this the
   // moment the user actually interacts with the scene themselves.
   focusedConceptId?: string | null;
+  interactiveSelection?: boolean;
+  initialFocusedId?: string | null;
 }) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
@@ -41,8 +46,10 @@ export default function KnowledgeConstellation({
   const [paused, setPaused] = useState(reducedMotion);
   const [showList, setShowList] = useState(false);
   const [localFocusedId, setLocalFocusedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialFocusedId);
   const webglOk = useWebGLSupport();
-  const focusedId = localFocusedId ?? externalFocusedId ?? null;
+  const focusedId = localFocusedId ?? selectedId ?? externalFocusedId ?? null;
+  const selectedNode = data.nodes.find((node) => node.id === selectedId) ?? null;
 
   // See VisualizationFrame.tsx for why: react-three-fiber's own container-
   // size measurement can miss its first reading on a dynamically-imported,
@@ -62,7 +69,11 @@ export default function KnowledgeConstellation({
 
   function handleSelect(node: ConstellationNode) {
     setLocalFocusedId(node.id);
-    router.push(`/dashboard/${node.documentId}`);
+    if (interactiveSelection) {
+      setSelectedId(node.id);
+    } else {
+      router.push(`/dashboard/${node.documentId}?concept=${encodeURIComponent(node.id)}`);
+    }
   }
 
   return (
@@ -135,7 +146,7 @@ export default function KnowledgeConstellation({
             {emptyHint}
           </div>
         ) : showList ? (
-          <ConstellationListView data={data} />
+          <ConstellationListView data={data} onSelect={interactiveSelection ? handleSelect : undefined} />
         ) : webglOk ? (
           inView && (
             <ConstellationScene
@@ -150,6 +161,27 @@ export default function KnowledgeConstellation({
           <ConstellationFallback data={data} onSelect={handleSelect} />
         )}
       </div>
+      {interactiveSelection && data.nodes.length > 0 && (
+        <div className="syn-map-detail" aria-live="polite">
+          {selectedNode ? (
+            <>
+              <div className="syn-map-detail-main">
+                <span className="syn-eyebrow">Selected concept / {selectedNode.documentLabel}</span>
+                <h3>{selectedNode.label}</h3>
+                {selectedNode.summary && <p>{selectedNode.summary}</p>}
+              </div>
+              <div className="syn-map-detail-action">
+                <span className="syn-map-mastery">{selectedNode.mastery === null ? "Not attempted yet" : `${selectedNode.mastery}% mastery`}</span>
+                <Link href={`/dashboard/${selectedNode.documentId}?concept=${encodeURIComponent(selectedNode.id)}`}>
+                  Study this concept <span aria-hidden="true">↗</span>
+                </Link>
+              </div>
+            </>
+          ) : (
+            <p className="syn-map-prompt">Choose a point to see what you know and where to go next.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

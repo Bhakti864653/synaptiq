@@ -27,7 +27,7 @@ export default function ContinueLearning({ focus }: { focus: ContinueLearningFoc
   return (
     <section className="flex flex-col gap-5">
       <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
-        Continue learning
+        Your next step
       </span>
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <MasteryRing score={focus.mastery} size={88} />

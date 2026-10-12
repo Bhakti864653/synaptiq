@@ -54,15 +54,10 @@ export default function MaterialWorkspace({
 
   return (
     <div className="flex flex-col gap-12">
-      {/* The open three-area composition: a compact rail, the central
-          learning content, and a large visualization - deliberately not
-          three matching cards. Only at xl+ does this become a real
-          side-by-side layout with the rail/visualization gently sticky
-          while the center scrolls; below that (tablet and mobile) it
-          collapses to a single readable column, matching the required
-          "concept selector -> content -> visualization -> tabs -> notes"
-          order exactly. */}
-      <div className="grid grid-cols-1 gap-y-8 xl:grid-cols-[200px_1fr_420px] xl:items-start xl:gap-x-12">
+      {/* The concept rail stays narrow, while the explanation and live
+          visualization share the remaining room. At smaller widths these
+          follow the same reading order in one column. */}
+      <div className="grid grid-cols-1 gap-y-8 xl:grid-cols-[176px_minmax(0,1fr)] xl:items-start xl:gap-x-8">
         <div className="min-w-0 xl:sticky xl:top-20">
           <ConceptRail
             concepts={concepts}
@@ -72,7 +67,7 @@ export default function MaterialWorkspace({
           />
         </div>
 
-        <div className="min-w-0 max-w-2xl">
+        <div className="min-w-0">
           <ConceptMobileSelect
             concepts={concepts}
             currentId={currentId}
@@ -80,13 +75,12 @@ export default function MaterialWorkspace({
             onSelect={setSelectedId}
           />
 
-          {/* Central focus - the selected concept is the unmistakable
-              subject of the page. key={selected.id} on the whole block
-              gives concept switches a real, restrained fade/slide instead
-              of a jarring in-place text swap. */}
-          <section key={selected.id} className="mt-6 flex animate-fade-up flex-col gap-4 xl:mt-0">
+          <div className="mt-6 grid min-w-0 grid-cols-1 gap-8 xl:mt-0 xl:grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)] xl:items-start">
+          {/* The selected concept remains the reading focus. Switching it
+              updates the existing live visualization beside it. */}
+          <section key={selected.id} className="flex min-w-0 animate-fade-up flex-col gap-4">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
-              {filename}
+              Explore this concept
             </span>
             <h2
               className="text-3xl font-medium leading-[1.15] text-ink sm:text-4xl"
@@ -139,21 +133,25 @@ export default function MaterialWorkspace({
             {/* Quiet and secondary on purpose - see LearningJourneyBar. */}
             <LearningJourneyBar mastery={selected.mastery} />
           </section>
-        </div>
 
-        <div className="min-w-0 xl:sticky xl:top-20">
-          <TopicVisualization
-            documentId={documentId}
-            filename={filename}
-            concepts={concepts}
-            masteryByConceptId={masteryByConceptId}
-            selectedConceptId={selected.id}
-          />
+          <div className="min-w-0 xl:sticky xl:top-20">
+            <TopicVisualization
+              documentId={documentId}
+              filename={filename}
+              concepts={concepts}
+              masteryByConceptId={masteryByConceptId}
+              selectedConceptId={selected.id}
+            />
+          </div>
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-8">
         <div ref={tabsRef}>
+          <h2 className="mb-5 text-xl font-medium text-ink" style={{ fontFamily: "var(--font-fraunces)" }}>
+            Practice and review
+          </h2>
           <DocumentTabs tabs={tabs} activeId={activeTabId} onActiveChange={setActiveTabId} />
         </div>
 

@@ -171,8 +171,8 @@ export default async function DashboardPage() {
           wide child (this constellation's own glow/canvas) force the
           whole track - and the page - wider than the viewport on narrow
           screens, even inside a 1-column grid. */}
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start">
-        <div className="min-w-0">
+      <div className="grid min-w-0 grid-cols-1 gap-8 border-t border-line pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-start lg:gap-10">
+        <div className="min-w-0 border-l-[3px] border-accent-2 pl-5">
           <ContinueLearning focus={continueFocus} />
         </div>
         <div className="min-w-0">
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
         totalCount={allWeakSpots.length}
       />
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 border-t border-line pt-7">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-ink">Your library</h2>
           <DocumentUpload collapsedByDefault />

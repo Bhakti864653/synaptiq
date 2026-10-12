@@ -53,12 +53,13 @@ export default function MaterialWorkspace({
   if (!selected) return null;
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="syn-workspace flex flex-col gap-12">
       {/* The concept rail stays narrow, while the explanation and live
           visualization share the remaining room. At smaller widths these
           follow the same reading order in one column. */}
-      <div className="grid grid-cols-1 gap-y-8 xl:grid-cols-[176px_minmax(0,1fr)] xl:items-start xl:gap-x-8">
-        <div className="min-w-0 xl:sticky xl:top-20">
+      <div className="grid grid-cols-1 gap-y-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:items-start xl:gap-x-10">
+        <div className="syn-concept-sidebar min-w-0 xl:sticky xl:top-20">
+          <div className="syn-eyebrow hidden xl:block">Concept index / {concepts.length}</div>
           <ConceptRail
             concepts={concepts}
             currentId={currentId}
@@ -75,17 +76,12 @@ export default function MaterialWorkspace({
             onSelect={setSelectedId}
           />
 
-          <div className="mt-6 grid min-w-0 grid-cols-1 gap-8 xl:mt-0 xl:grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)] xl:items-start">
+          <div className="syn-concept-stage mt-6 grid min-w-0 grid-cols-1 xl:mt-0 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-center">
           {/* The selected concept remains the reading focus. Switching it
               updates the existing live visualization beside it. */}
-          <section key={selected.id} className="flex min-w-0 animate-fade-up flex-col gap-4">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
-              Explore this concept
-            </span>
-            <h2
-              className="text-3xl font-medium leading-[1.15] text-ink sm:text-4xl"
-              style={{ fontFamily: "var(--font-fraunces)" }}
-            >
+          <section key={selected.id} className="syn-concept-copy flex min-w-0 animate-fade-up flex-col gap-4">
+            <span className="syn-eyebrow">The idea / {String(concepts.findIndex((c) => c.id === selected.id) + 1).padStart(2, "0")}</span>
+            <h2 className="syn-concept-title">
               {selected.name}
             </h2>
             {keyIdea && (
@@ -134,7 +130,7 @@ export default function MaterialWorkspace({
             <LearningJourneyBar mastery={selected.mastery} />
           </section>
 
-          <div className="min-w-0 xl:sticky xl:top-20">
+          <div className="syn-visual-stage min-w-0">
             <TopicVisualization
               documentId={documentId}
               filename={filename}
@@ -147,11 +143,10 @@ export default function MaterialWorkspace({
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="syn-practice-section flex flex-col gap-8">
         <div ref={tabsRef}>
-          <h2 className="mb-5 text-xl font-medium text-ink" style={{ fontFamily: "var(--font-fraunces)" }}>
-            Practice and review
-          </h2>
+          <span className="syn-eyebrow">02 / Make it stick</span>
+          <h2 className="syn-section-title mb-6">Practice <em>& review.</em></h2>
           <DocumentTabs tabs={tabs} activeId={activeTabId} onActiveChange={setActiveTabId} />
         </div>
 

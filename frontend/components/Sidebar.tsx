@@ -87,11 +87,10 @@ export default function Sidebar() {
 
   return (
     <nav
-      className="flex w-56 shrink-0 flex-col gap-1 border-r border-line/60 p-4 backdrop-blur-sm"
-      style={{ background: "color-mix(in srgb, var(--ink) 8%, transparent)" }}
+      className="syn-sidebar flex w-56 shrink-0 flex-col gap-1 p-4"
     >
-      <div className="mb-2 flex items-center justify-between">
-        <SynaptiqMark size={20} className="text-ink-muted" title="Synaptiq" />
+      <div className="mb-8 flex items-center justify-between">
+        <SynaptiqMark size={28} className="text-ink" title="Synaptiq" />
         <button
           onClick={toggle}
           aria-label="Collapse sidebar"
@@ -100,7 +99,8 @@ export default function Sidebar() {
           <HamburgerIcon />
         </button>
       </div>
-      {mainLinks.map((link) => {
+      <span className="syn-nav-label">YOUR SPACE</span>
+      {mainLinks.map((link, index) => {
         const isActive =
           link.href === "/dashboard"
             ? pathname === "/dashboard"
@@ -109,12 +109,13 @@ export default function Sidebar() {
           <Link
             key={link.href}
             href={link.href}
-            className={`rounded-[10px_4px_10px_4px] px-3 py-2 text-sm font-medium transition-colors ${
+            className={`syn-nav-link px-3 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? "bg-brand text-brand-ink"
-                : "text-ink-muted hover:bg-line/40 hover:text-ink"
+                ? "syn-nav-active text-ink"
+                : "text-ink-muted hover:text-ink"
             }`}
           >
+            <span className="syn-nav-index">{String(index + 1).padStart(2, "0")}</span>
             {link.label}
           </Link>
         );

@@ -93,6 +93,89 @@
   --font-fraunces: var(--font-fraunces);
 }
 
+/* Learning studio: the signed-in pages have their own editorial layout.
+   The public entrance and its palette remain untouched. */
+.syn-page { position: relative; }
+.syn-eyebrow, .syn-nav-label { font-family: var(--font-plex-mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: .19em; text-transform: uppercase; color: var(--landing-accent-ink); }
+.syn-display { max-width: 900px; font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(3rem, 5.8vw, 6.3rem); font-weight: 500; line-height: 1.02; letter-spacing: -.065em; overflow-wrap: anywhere; }
+.syn-display em, .syn-section-title em { font-weight: 400; color: var(--landing-violet-ink); }
+.syn-lead { max-width: 620px; margin-top: 20px; color: var(--ink-muted); font-size: clamp(1rem, 1.5vw, 1.18rem); line-height: 1.65; }
+.syn-section-title { font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(2.2rem, 3.5vw, 4.15rem); line-height: 1.1; letter-spacing: -.055em; margin-top: 12px; }
+.syn-dashboard-header { padding: 30px 0 35px; }
+.syn-greeting-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 15px; }
+.syn-greeting-mascot { display: grid; place-items: center; flex: none; width: 156px; height: 156px; border: 1px solid var(--line); border-radius: 50%; background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--accent-2) 28%, var(--surface)), var(--surface) 75%); box-shadow: 0 18px 55px -35px var(--landing-accent-ink); }
+.syn-stats { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; margin-top: 45px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.syn-stat { display: flex; flex: 1 1 150px; flex-direction: column; gap: 5px; padding: 18px 24px 18px 0; border-right: 1px solid var(--line); margin-right: 24px; }
+.syn-stat-value { font-family: var(--font-fraunces), Georgia, serif; font-size: 2rem; line-height: 1; letter-spacing: -.05em; }
+.syn-stat-label { font-family: var(--font-plex-mono), monospace; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-muted); font-size: 10px; }
+.syn-stats-link { align-self: center; color: var(--landing-violet-ink); font-size: 13px; font-weight: 600; white-space: nowrap; padding: 14px 0; }
+.syn-stats-link:hover { text-decoration: underline; }
+.syn-map-section { padding: 44px 0 0; }
+.syn-map-heading { display: flex; justify-content: space-between; align-items: end; gap: 28px; margin-bottom: 26px; }
+.syn-map-heading p { max-width: 290px; font-size: 14px; line-height: 1.6; color: var(--ink-muted); }
+.syn-map-stage { position: relative; isolation: isolate; overflow: hidden; border: 1px solid var(--line); border-radius: 8px 56px 8px 8px; padding: 28px 30px 14px; background: radial-gradient(circle at 67% 42%, color-mix(in srgb, var(--landing-glow-violet) 23%, transparent), transparent 37%), radial-gradient(circle at 32% 70%, color-mix(in srgb, var(--landing-glow-amber) 32%, transparent), transparent 42%), var(--surface); box-shadow: 0 28px 65px -48px color-mix(in srgb, var(--ink) 45%, transparent); }
+.syn-map-stage::before, .syn-map-stage::after { content: ""; position: absolute; pointer-events: none; z-index: -1; width: 450px; height: 450px; border: 1px solid color-mix(in srgb, var(--landing-violet-ink) 20%, transparent); border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%,-50%); }
+.syn-map-stage::after { width: 700px; height: 700px; border-color: color-mix(in srgb, var(--landing-accent-ink) 16%, transparent); }
+.syn-map-stage .relative.isolate { height: min(52vw, 550px); min-height: 330px; }
+.syn-map-stage .relative.isolate > div:first-child { opacity: .5; }
+.syn-stage-stamp { position: absolute; right: 30px; bottom: 22px; pointer-events: none; font-family: var(--font-plex-mono), monospace; font-size: 10px; letter-spacing: .18em; color: var(--ink-muted); }
+.syn-dashboard-lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); gap: 50px; padding: 56px 0 60px; }
+.syn-next-panel { border-left: 4px solid var(--accent-2); padding-left: 30px; }
+.syn-next-content { display: flex; flex-direction: column; gap: 20px; }
+.syn-next-title-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.syn-next-title { font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(2.1rem, 3vw, 3.4rem); line-height: 1.08; letter-spacing: -.05em; overflow-wrap: anywhere; }
+.syn-next-source { color: var(--landing-violet-ink); font-size: 13px; margin-top: 9px; }
+.syn-next-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.syn-attention-panel { border-top: 1px solid var(--line); padding-top: 18px; }
+.syn-attention-panel > section > div:nth-child(2) { display: flex; flex-direction: column; border: 0; }
+.syn-attention-panel > section > div:nth-child(2) > a { padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); }
+.syn-library { border-top: 1px solid var(--line); padding-top: 42px; }
+.syn-library-heading { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
+.syn-material-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.syn-material-card { position: relative; min-height: 142px; padding: 24px; border: 1px solid var(--line); border-radius: 3px 26px 3px 3px; background: var(--surface); box-shadow: 5px 6px 0 color-mix(in srgb, var(--line) 38%, transparent); }
+.syn-material-card::before { content: ""; position: absolute; left: 0; top: 22px; bottom: 22px; width: 3px; background: var(--landing-glow-violet); }
+.syn-material-grid > li:nth-child(3n+2) .syn-material-card::before { background: var(--landing-glow-amber); }
+.syn-material-grid > li:nth-child(3n) .syn-material-card::before { background: var(--series-2); }
+.syn-material-card:hover { transform: translateY(-3px); box-shadow: 7px 10px 0 color-mix(in srgb, var(--line) 55%, transparent); }
+.syn-material-name { font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(1.1rem, 1.5vw, 1.45rem); }
+.syn-study-header { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; border-bottom: 1px solid var(--line); padding: 15px 0 36px; }
+.syn-back-link { font-size: 13px; color: var(--landing-violet-ink); margin-bottom: 32px; }
+.syn-back-link:hover { text-decoration: underline; }
+.syn-study-title { max-width: 1050px; font-size: clamp(3rem, 5vw, 5.7rem); }
+.syn-study-meta { color: var(--ink-muted); font-size: 13px; line-height: 1.6; }
+.syn-concept-sidebar { border-top: 1px solid var(--line); padding-top: 20px; }
+.syn-rail-list { margin-top: 20px; border-left: 1px solid var(--line); }
+.syn-rail-item { position: relative; padding: 13px 10px 13px 14px; border-bottom: 1px solid var(--line); }
+.syn-rail-active { background: color-mix(in srgb, var(--landing-glow-violet) 13%, var(--surface)); }
+.syn-rail-active::before { content: ""; position: absolute; left: -2px; top: 0; bottom: 0; width: 3px; background: var(--landing-violet-ink); }
+.syn-rail-number { color: var(--landing-accent-ink); font-family: var(--font-plex-mono), monospace; font-size: 10px; }
+.syn-concept-stage { min-height: 540px; border: 1px solid var(--line); border-radius: 3px 50px 3px 3px; background: var(--surface); overflow: hidden; }
+.syn-concept-copy { padding: clamp(26px,3.5vw,58px); }
+.syn-concept-title { font-family: var(--font-fraunces), Georgia, serif; font-size: clamp(2.4rem, 3.6vw, 4.7rem); line-height: 1.04; letter-spacing: -.06em; overflow-wrap: anywhere; }
+.syn-visual-stage { align-self: stretch; display: flex; align-items: center; padding: 25px; border-left: 1px solid var(--line); background: radial-gradient(circle at 55% 42%,color-mix(in srgb,var(--landing-glow-violet) 22%,transparent),transparent 47%),radial-gradient(circle at 30% 80%,color-mix(in srgb,var(--landing-glow-amber) 27%,transparent),transparent 50%); }
+.syn-visual-stage > div { width: 100%; }
+.syn-practice-section { padding-top: 45px; border-top: 1px solid var(--line); scroll-margin-top: 90px; }
+.syn-tab-list { border-bottom: 1px solid var(--line); }
+.syn-tab-button { position: relative; padding: 14px 18px; white-space: nowrap; }
+.syn-tab-active::after { content: ""; position: absolute; bottom: 0; left: 12px; right: 12px; height: 3px; background: var(--landing-violet-ink); }
+.syn-sidebar { position: relative; border-right: 1px solid var(--line); background: color-mix(in srgb,var(--surface) 88%,var(--landing-glow-amber)); }
+.syn-sidebar::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px; background: linear-gradient(var(--landing-glow-amber),var(--landing-glow-violet)); opacity: .6; }
+.syn-nav-label { color: var(--ink-muted); padding: 0 12px 12px; }
+.syn-nav-link { display: flex; align-items: center; gap: 11px; border-radius: 2px 15px 2px 2px; }
+.syn-nav-link:hover { background: color-mix(in srgb,var(--landing-glow-violet) 9%,transparent); }
+.syn-nav-active { background: color-mix(in srgb,var(--landing-glow-violet) 17%,var(--surface)); box-shadow: inset 3px 0 var(--landing-violet-ink); }
+.syn-nav-index { color: var(--landing-accent-ink); font-family: var(--font-plex-mono),monospace; font-size: 10px; }
+.syn-empty-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; min-height: 70vh; }
+.syn-empty-upload { margin-top: 36px; max-width: 580px; }
+.syn-empty-art { position: relative; display: grid; place-items: center; min-height: 470px; border-radius: 50%; background: radial-gradient(circle,color-mix(in srgb,var(--landing-glow-amber) 35%,transparent),transparent 60%),radial-gradient(circle at 70% 30%,color-mix(in srgb,var(--landing-glow-violet) 30%,transparent),transparent 55%); }
+.syn-orbit { position: absolute; width: 70%; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 50%; transform: rotate(-18deg) scaleX(1.3); }
+.syn-orbit-two { width: 95%; transform: rotate(27deg) scaleX(.85); }
+.syn-empty-mascot { position: relative; z-index: 1; }
+.syn-art-label { position: absolute; z-index: 2; padding: 8px 11px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink-muted); font-family: var(--font-plex-mono),monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.syn-art-label-one { top: 16%; left: 3%; } .syn-art-label-two { top: 35%; right: 0; } .syn-art-label-three { bottom: 17%; left: 12%; }
+@media (max-width: 1000px) { .syn-dashboard-lower { grid-template-columns: 1fr; gap: 32px; } .syn-material-grid { grid-template-columns: 1fr; } .syn-map-heading { align-items: start; flex-direction: column; } .syn-map-heading p { max-width: 580px; } .syn-visual-stage { border-left: 0; border-top: 1px solid var(--line); min-height: 340px; } }
+@media (max-width: 650px) { .syn-display { font-size: clamp(2.8rem,12vw,4.5rem); } .syn-greeting-mascot { width: 80px; height: 80px; } .syn-greeting-mascot svg { max-width: 65px; } .syn-stats { margin-top: 28px; } .syn-stat { flex-basis: 40%; margin-right: 10px; padding-right: 8px; } .syn-map-stage { padding: 20px 10px 10px; border-radius: 4px 30px 4px 4px; } .syn-stage-stamp { right: 15px; bottom: 14px; } .syn-next-panel { padding-left: 17px; } .syn-empty-grid { grid-template-columns: 1fr; } .syn-empty-art { min-height: 320px; } .syn-concept-stage { border-radius: 4px 28px 4px 4px; } .syn-concept-copy { padding: 25px; } }
+
 /* The decorative glow blobs (DashboardBackdrop, LandingIllustration) are
    deliberately larger than the viewport and offset negative so their
    soft edge never shows a hard boundary - but a fixed-position element's

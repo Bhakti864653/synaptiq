@@ -117,19 +117,17 @@ export default async function DocumentPage({
     (concepts ?? []).find((c) => (masteryByConceptId.get(c.id) ?? 0) < 80) ?? concepts?.[0];
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1 border-b border-line pb-5">
-        <Link href="/dashboard" className="w-fit text-sm text-ink-muted hover:text-ink">
-          &larr; Back to your library
+    <main className="syn-page syn-study mx-auto flex w-full max-w-[1500px] flex-col gap-8 px-5 pb-24 pt-8 sm:px-10 lg:px-14">
+      <header className="syn-study-header">
+        <Link href="/dashboard" className="syn-back-link">
+          <span aria-hidden="true">←</span> Your library
         </Link>
-        <h1
-          className="mt-1 text-3xl font-medium text-ink"
-          style={{ fontFamily: "var(--font-fraunces)" }}
-        >
+        <span className="syn-eyebrow">Material / Explore & practice</span>
+        <h1 className="syn-display syn-study-title">
           {document.filename}
         </h1>
         {conceptCount > 0 && (
-          <div className="mt-1 flex flex-col gap-1 text-sm text-ink-muted">
+          <div className="syn-study-meta">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span>
                 {conceptCount} concept{conceptCount === 1 ? "" : "s"}
@@ -157,7 +155,7 @@ export default async function DocumentPage({
             {currentFocus && <p>Currently on: {currentFocus.name}</p>}
           </div>
         )}
-      </div>
+      </header>
 
       <DocumentStatusWatcher
         key={document.id}

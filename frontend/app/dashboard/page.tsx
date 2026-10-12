@@ -134,26 +134,28 @@ export default async function DashboardPage() {
 
   if (!isReturningUser) {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <Mascot expression="excited" size={84} className="drop-shadow-md" />
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-semibold text-ink">
-              Let&apos;s get you started
-            </h1>
-            <p className="text-sm text-ink-muted">
-              Upload a file or paste your notes — Synaptiq will turn them into a
-              diagnostic quiz and start tracking what you know.
-            </p>
+      <main className="syn-page syn-empty mx-auto w-full max-w-6xl px-5 py-10 sm:px-10">
+        <div className="syn-eyebrow">Your learning space / 01</div>
+        <div className="syn-empty-grid">
+          <div>
+            <h1 className="syn-display">Every idea starts <em>somewhere.</em></h1>
+            <p className="syn-lead">Bring in a file or paste your notes. Synaptiq will help you see what you know, find the gaps, and make your next move.</p>
+            <div className="syn-empty-upload"><DocumentUpload /></div>
+          </div>
+          <div className="syn-empty-art" aria-hidden="true">
+            <div className="syn-orbit syn-orbit-one" /><div className="syn-orbit syn-orbit-two" />
+            <div className="syn-empty-mascot"><Mascot expression="excited" size={150} /></div>
+            <span className="syn-art-label syn-art-label-one">01 / Add material</span>
+            <span className="syn-art-label syn-art-label-two">02 / Discover connections</span>
+            <span className="syn-art-label syn-art-label-three">03 / Learn what matters</span>
           </div>
         </div>
-        <DocumentUpload />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 p-6">
+    <main className="syn-page mx-auto flex w-full max-w-[1500px] flex-col px-5 pb-24 pt-8 sm:px-10 lg:px-14">
       <GreetingHeader
         name={displayName}
         materialCount={documents?.length ?? 0}
@@ -164,39 +166,37 @@ export default async function DashboardPage() {
         mascotExpression={heroExpression(overallMastery)}
       />
 
-      {/* Deliberately asymmetric, not two equal generic columns - the
-          constellation gets real extra room on wide screens so it reads
-          as a hero element rather than a sidebar widget. min-w-0 on every
-          grid item: without it, CSS Grid's default min-width:auto lets a
-          wide child (this constellation's own glow/canvas) force the
-          whole track - and the page - wider than the viewport on narrow
-          screens, even inside a 1-column grid. */}
-      <div className="grid min-w-0 grid-cols-1 gap-8 border-t border-line pt-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-start lg:gap-10">
-        <div className="min-w-0 border-l-[3px] border-accent-2 pl-5">
-          <ContinueLearning focus={continueFocus} />
+      <section className="syn-map-section" aria-label="Your learning map">
+        <div className="syn-map-heading">
+          <div><span className="syn-eyebrow">01 / The big picture</span><h2 className="syn-section-title">Where knowledge <em>connects.</em></h2></div>
+          <p>Each point is a concept from your materials. Explore the connections, then choose where to go next.</p>
         </div>
-        <div className="min-w-0">
+        <div className="syn-map-stage">
+          <span className="syn-stage-stamp" aria-hidden="true">YOUR IDEAS / IN MOTION</span>
           <KnowledgeConstellation
             data={constellationData}
             emptyHint="Once you upload a material, your concepts will appear here as a constellation."
           />
         </div>
+      </section>
+
+      <div className="syn-dashboard-lower">
+        <div className="syn-next-panel"><ContinueLearning focus={continueFocus} /></div>
+        <div className="syn-attention-panel"><NeedsAttentionStrip
+          items={weakSpots.map((c) => ({
+            conceptId: c.id,
+            documentId: c.document_id,
+            conceptName: c.name,
+            filename: documentById.get(c.document_id)?.filename ?? "",
+            score: c.score,
+          }))}
+          totalCount={allWeakSpots.length}
+        /></div>
       </div>
 
-      <NeedsAttentionStrip
-        items={weakSpots.map((c) => ({
-          conceptId: c.id,
-          documentId: c.document_id,
-          conceptName: c.name,
-          filename: documentById.get(c.document_id)?.filename ?? "",
-          score: c.score,
-        }))}
-        totalCount={allWeakSpots.length}
-      />
-
-      <div className="flex flex-col gap-3 border-t border-line pt-7">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Your library</h2>
+      <section className="syn-library">
+        <div className="syn-library-heading">
+          <div><span className="syn-eyebrow">02 / Your collection</span><h2 className="syn-section-title">The material <em>behind it.</em></h2></div>
           <DocumentUpload collapsedByDefault />
         </div>
         <MaterialsBoard
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
           conceptsByDocument={conceptsByDocument}
           masteryByConceptId={masteryByConceptId}
         />
-      </div>
+      </section>
     </main>
   );
 }

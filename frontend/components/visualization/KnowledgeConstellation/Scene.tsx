@@ -107,6 +107,16 @@ export default function ConstellationScene({
   onSelect: (node: ConstellationNode) => void;
 }) {
   const nodesById = useMemo(() => new Map(data.nodes.map((n) => [n.id, n])), [data.nodes]);
+  // The layout isn't centered on the origin (one material's cluster sits
+  // off to one side), so shift everything by the bounding-box center -
+  // the constellation then sits mid-frame and rotates in place.
+  const offset = useMemo<[number, number, number]>(() => {
+    if (data.nodes.length === 0) return [0, 0, 0];
+    return [0, 1, 2].map((axis) => {
+      const values = data.nodes.map((n) => n.position[axis]);
+      return -(Math.min(...values) + Math.max(...values)) / 2;
+    }) as [number, number, number];
+  }, [data.nodes]);
 
   return (
     <Canvas
@@ -119,30 +129,32 @@ export default function ConstellationScene({
       <pointLight position={[-6, -4, -6]} intensity={25} color="#8b6bff" />
 
       <RotatingGroup paused={paused}>
-        {data.edges.map((edge, i) => {
-          const source = nodesById.get(edge.source);
-          const target = nodesById.get(edge.target);
-          if (!source || !target) return null;
-          return (
-            <Line
-              key={i}
-              points={[source.position, target.position]}
-              color="#c9b892"
-              transparent
-              opacity={0.35}
-              lineWidth={1}
+        <group position={offset}>
+          {data.edges.map((edge, i) => {
+            const source = nodesById.get(edge.source);
+            const target = nodesById.get(edge.target);
+            if (!source || !target) return null;
+            return (
+              <Line
+                key={i}
+                points={[source.position, target.position]}
+                color="#c9b892"
+                transparent
+                opacity={0.35}
+                lineWidth={1}
+              />
+            );
+          })}
+          {data.nodes.map((node) => (
+            <Node
+              key={node.id}
+              node={node}
+              focused={node.id === focusedId}
+              onFocusChange={onFocusChange}
+              onSelect={onSelect}
             />
-          );
-        })}
-        {data.nodes.map((node) => (
-          <Node
-            key={node.id}
-            node={node}
-            focused={node.id === focusedId}
-            onFocusChange={onFocusChange}
-            onSelect={onSelect}
-          />
-        ))}
+          ))}
+          </group>
       </RotatingGroup>
     </Canvas>
   );

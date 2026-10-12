@@ -38,34 +38,29 @@ export default function GreetingHeader({
   }
 
   return (
-    <header className="flex flex-col gap-6 border-b border-line pb-6">
-      <div className="flex items-center gap-4">
-        <Mascot expression={mascotExpression} size={52} className="drop-shadow-md" />
+    <header className="syn-dashboard-header">
+      <div className="syn-eyebrow">Synaptiq / Your learning studio</div>
+      <div className="syn-greeting-row">
         <div>
-          <h1
-            className="text-3xl font-medium leading-tight text-ink"
-            style={{ fontFamily: "var(--font-fraunces)" }}
-          >
-            {headline}
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">{line}</p>
+          <h1 className="syn-display">{headline}</h1>
+          <p className="syn-lead">{line}</p>
         </div>
+        <div className="syn-greeting-mascot"><Mascot expression={mascotExpression} size={100} className="drop-shadow-md" /></div>
       </div>
 
       {isReturningUser && (
-        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-          {stats.map((stat, i) => (
-            <span key={stat.label} className="flex items-baseline gap-2">
-              {i > 0 && <span aria-hidden className="h-4 w-px bg-line" />}
-              <span className="font-mono text-lg font-semibold text-ink">{stat.value}</span>
-              <span className="text-xs text-ink-muted">{stat.label}</span>
+        <div className="syn-stats">
+          {stats.map((stat) => (
+            <span key={stat.label} className="syn-stat">
+              <span className="syn-stat-value">{stat.value}</span>
+              <span className="syn-stat-label">{stat.label}</span>
             </span>
           ))}
           <Link
             href="/dashboard/progress"
-            className="ml-auto text-xs font-medium text-brand hover:underline"
+            className="syn-stats-link"
           >
-            View progress &rarr;
+            View your progress <span aria-hidden="true">↗</span>
           </Link>
         </div>
       )}

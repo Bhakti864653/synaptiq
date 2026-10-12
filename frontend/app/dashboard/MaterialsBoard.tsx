@@ -53,7 +53,7 @@ export default function MaterialsBoard({
   }
 
   return (
-    <ul className="flex flex-col divide-y divide-line border-y border-line">
+    <ul className="syn-material-grid">
       {documents.map((doc) => {
         const docMastery = averageMastery(conceptsByDocument.get(doc.id) ?? []);
         return (

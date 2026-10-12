@@ -97,7 +97,7 @@ export default function MaterialCard({
   // the filename/status area is its own <Link>, and delete is a sibling
   // <button>, so nothing is ever nested inside anything else interactive.
   return (
-    <div className="group flex items-center gap-4 py-3 transition-colors hover:bg-line/20">
+    <div className="syn-material-card group flex items-center gap-4 transition-colors">
       <Link
         href={`/dashboard/${id}`}
         className="flex min-w-0 flex-1 items-center gap-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -107,7 +107,7 @@ export default function MaterialCard({
         </span>
         <MasteryRing score={mastery} size={40} />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-ink">{filename}</div>
+          <div className="syn-material-name truncate text-ink">{filename}</div>
           {isPending(status) &&
             (isStalledProcessing(status, processingStartedAt) ? (
               <div className="flex flex-col items-start gap-1.5">

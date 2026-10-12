@@ -32,8 +32,8 @@ export function ConceptRail({
 }) {
   return (
     <nav aria-label="Concepts in this material" className="hidden xl:block">
-      <ul className="flex flex-col gap-0.5 border-l border-line pl-3">
-        {concepts.map((concept) => {
+      <ul className="syn-rail-list">
+        {concepts.map((concept, index) => {
           const status = statusFor(concept, currentId);
           const selected = concept.id === selectedId;
           return (
@@ -42,10 +42,11 @@ export function ConceptRail({
                 type="button"
                 onClick={() => onSelect(concept.id)}
                 aria-current={selected ? "true" : undefined}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                  selected ? "bg-brand/10 text-ink" : "text-ink-muted hover:bg-line/40 hover:text-ink"
+                className={`syn-rail-item flex w-full items-center gap-2 text-left text-sm transition-colors ${
+                  selected ? "syn-rail-active text-ink" : "text-ink-muted hover:text-ink"
                 }`}
               >
+                <span className="syn-rail-number">{String(index + 1).padStart(2, "0")}</span>
                 <span
                   aria-hidden
                   className="h-1.5 w-1.5 shrink-0 rounded-full"

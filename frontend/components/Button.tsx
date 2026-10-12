@@ -12,7 +12,7 @@ const variants: Record<Variant, string> = {
   // Landing-page-only ("Warm Margin" redesign): organic asymmetric corners
   // instead of the app-wide rounded-md, on the landing palette's tokens.
   organic:
-    "!rounded-[14px_6px_14px_6px] bg-landing-glow-violet/10 text-landing-glow-violet hover:bg-landing-glow-violet/[0.16]",
+    "!rounded-[14px_6px_14px_6px] bg-landing-glow-violet/10 text-landing-violet-ink hover:bg-landing-glow-violet/[0.16]",
   // Landing-page-only: the solid dark CTA style (landing hero's "Sign up",
   // and login/signup form submit buttons).
   "organic-primary":

@@ -32,6 +32,7 @@
   --landing-glow-amber: #f2a63f;
   --landing-accent-ink: #a8641b;
   --landing-glow-violet: #7c4fc9;
+  --landing-violet-ink: #523094;
   --landing-line: #ddceac;
 }
 
@@ -60,6 +61,7 @@
   --landing-glow-amber: #f2a63f;
   --landing-accent-ink: #f2b463;
   --landing-glow-violet: #9b6bff;
+  --landing-violet-ink: #c5a6ff;
   --landing-line: #3a3025;
 }
 
@@ -84,6 +86,7 @@
   --color-landing-glow-amber: var(--landing-glow-amber);
   --color-landing-accent-ink: var(--landing-accent-ink);
   --color-landing-glow-violet: var(--landing-glow-violet);
+  --color-landing-violet-ink: var(--landing-violet-ink);
   --color-landing-line: var(--landing-line);
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);

@@ -18,7 +18,7 @@ export default function Home() {
       <main className="relative z-10 flex flex-1 items-center px-6 py-10 md:px-12">
         <div className="mx-auto grid w-full max-w-5xl items-center gap-12 md:grid-cols-[1.15fr_0.85fr] md:gap-8">
           <div className="flex flex-col items-center gap-5 text-center md:items-start md:text-left">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-landing-glow-violet">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-landing-violet-ink">
               Adaptive AI study platform
             </span>
             <h1

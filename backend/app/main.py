@@ -22,11 +22,18 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 logger = logging.getLogger("synaptiq")
 
+PREVIEW_ORIGIN_REGEX = r"https://synaptiq-[a-z0-9]+-bhakti864653s-projects\.vercel\.app"
+
 app = FastAPI(title="Synaptiq API")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "https://synaptiq-eta.vercel.app"],
+    # Vercel preview deployments of this project only (team bhakti864653s-projects), so a
+    # design branch can be reviewed with working AI features. The deployment code has no
+    # dashes, so no other team or project can match. CORS is not auth: every route still
+    # requires the signed-in user's token.
+    allow_origin_regex=PREVIEW_ORIGIN_REGEX,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -13,6 +13,7 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import { useMascot } from "@/lib/mascotContext";
 import { celebrateFromResults } from "@/lib/mascotMessages";
+import { useConceptFocus } from "@/lib/conceptFocus";
 
 type Concept = { id: string; name: string };
 type Question = {
@@ -23,6 +24,13 @@ type Question = {
 };
 type Mastery = { concept_id: string; mastery_score: number };
 type Result = { is_correct: boolean; correct_index: number };
+
+// A submit only returns the concepts it touched, so keep everyone else's.
+function mergeMastery(current: Mastery[], updates: Mastery[]): Mastery[] {
+  const merged = new Map(current.map((m) => [m.concept_id, m.mastery_score]));
+  for (const m of updates) merged.set(m.concept_id, m.mastery_score);
+  return Array.from(merged, ([concept_id, mastery_score]) => ({ concept_id, mastery_score }));
+}
 
 export default function QuizView({
   documentId,
@@ -43,6 +51,19 @@ export default function QuizView({
 }) {
   const showQuiz = mode !== "practice";
   const showPractice = mode !== "quiz";
+  // On the material page, the picked concept narrows the quiz to its own
+  // questions (with a way back to the whole quiz) and is what Practice
+  // practices.
+  const focus = useConceptFocus();
+  const [wholeQuizFor, setWholeQuizFor] = useState<string | null>(null);
+  const focusQuestions = focus ? questions.filter((q) => q.concept_id === focus.id) : [];
+  const narrowed =
+    !!focus &&
+    focusQuestions.length > 0 &&
+    focusQuestions.length < questions.length &&
+    wholeQuizFor !== focus.id;
+  const shownQuestions = narrowed ? focusQuestions : questions;
+  const shownConcepts = narrowed ? concepts.filter((c) => c.id === focus?.id) : concepts;
   const router = useRouter();
   const { celebrate } = useMascot();
   const [generating, setGenerating] = useState(false);
@@ -83,7 +104,7 @@ export default function QuizView({
     setSubmitting(true);
     setError(null);
     try {
-      const payload = questions.map((q) => ({
+      const payload = shownQuestions.map((q) => ({
         question_id: q.id,
         selected_index: answers[q.id] ?? -1,
         confidence: confidences[q.id] ?? null,
@@ -98,7 +119,7 @@ export default function QuizView({
         throw new Error(body.detail || `Failed (${res.status})`);
       }
       const result = await res.json();
-      setLatestMastery(result.mastery_updates);
+      setLatestMastery((prev) => mergeMastery(prev ?? mastery, result.mastery_updates));
       setResults((prev) => {
         const next = { ...prev };
         for (const r of result.results as (Result & {
@@ -117,11 +138,12 @@ export default function QuizView({
     }
   }
 
-  async function handlePractice() {
+  async function handlePractice(conceptId?: string) {
     setPracticing(true);
     setError(null);
     try {
-      const res = await authFetch(`/documents/${documentId}/practice`, {
+      const query = conceptId ? `?concept_id=${encodeURIComponent(conceptId)}` : "";
+      const res = await authFetch(`/documents/${documentId}/practice${query}`, {
         method: "POST",
       });
       if (!res.ok) {
@@ -132,7 +154,7 @@ export default function QuizView({
       setPracticeQuestions(result.questions);
       celebrate("excited", "Time to practice your weak spots!");
     } catch (e) {
-      setError({ message: friendlyErrorMessage(e), retry: handlePractice });
+      setError({ message: friendlyErrorMessage(e), retry: () => handlePractice(conceptId) });
     } finally {
       setPracticing(false);
     }
@@ -158,18 +180,7 @@ export default function QuizView({
         throw new Error(body.detail || `Failed (${res.status})`);
       }
       const result = await res.json();
-      setLatestMastery((prev) => {
-        const merged = new Map(
-          (prev ?? mastery).map((m) => [m.concept_id, m.mastery_score]),
-        );
-        for (const m of result.mastery_updates as Mastery[]) {
-          merged.set(m.concept_id, m.mastery_score);
-        }
-        return Array.from(merged, ([concept_id, mastery_score]) => ({
-          concept_id,
-          mastery_score,
-        }));
-      });
+      setLatestMastery((prev) => mergeMastery(prev ?? mastery, result.mastery_updates));
       setResults((prev) => {
         const next = { ...prev };
         for (const r of result.results as (Result & {
@@ -196,11 +207,11 @@ export default function QuizView({
   );
 
   const diagnosticSubmitted =
-    questions.length > 0 && questions.every((q) => results[q.id]);
+    shownQuestions.length > 0 && shownQuestions.every((q) => results[q.id]);
   const diagnosticScorePct = diagnosticSubmitted
     ? Math.round(
-        (100 * questions.filter((q) => results[q.id]?.is_correct).length) /
-          questions.length,
+        (100 * shownQuestions.filter((q) => results[q.id]?.is_correct).length) /
+          shownQuestions.length,
       )
     : null;
 
@@ -233,8 +244,8 @@ export default function QuizView({
     <div className="flex flex-col gap-6">
       {showQuiz && concepts.length > 0 && (
         <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-ink">Concepts</h2>
-          {concepts.map((c) => {
+          <h2 className="text-lg font-semibold text-ink">{narrowed ? "Concept" : "Concepts"}</h2>
+          {shownConcepts.map((c) => {
             const score = masteryByConcept.get(c.id) ?? 0;
             return (
               <div key={c.id} className="flex flex-col gap-1">
@@ -256,7 +267,22 @@ export default function QuizView({
 
       {showQuiz && status === "quiz_ready" && questions.length > 0 && (
         <Card className="flex flex-col gap-6">
-          <h2 className="text-lg font-semibold text-ink">Diagnostic quiz</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="text-lg font-semibold text-ink">
+              {narrowed && focus ? `Quiz: ${focus.name}` : "Diagnostic quiz"}
+            </h2>
+            {focus && focusQuestions.length > 0 && focusQuestions.length < questions.length && (
+              <button
+                type="button"
+                onClick={() => setWholeQuizFor(narrowed ? focus.id : null)}
+                className="text-sm font-medium text-ink-muted hover:text-ink"
+              >
+                {narrowed
+                  ? `Show the whole quiz (${questions.length} questions)`
+                  : `Only ${focus.name}`}
+              </button>
+            )}
+          </div>
           {diagnosticScorePct !== null && (
             <QuizResultBanner
               scorePct={diagnosticScorePct}
@@ -264,7 +290,7 @@ export default function QuizView({
               supportHint={tutorHint}
             />
           )}
-          {questions.map((q) => (
+          {shownQuestions.map((q) => (
             <QuestionBlock
               key={q.id}
               question={q}
@@ -281,7 +307,7 @@ export default function QuizView({
               onClick={handleSubmit}
               disabled={
                 submitting ||
-                questions.some((q) => confidences[q.id] === undefined)
+                shownQuestions.some((q) => confidences[q.id] === undefined)
               }
               className="w-fit"
             >
@@ -300,9 +326,27 @@ export default function QuizView({
       )}
 
       {showPractice && status === "quiz_ready" && !practiceQuestions && (
-        <Button onClick={handlePractice} disabled={practicing} className="w-fit">
-          {practicing ? "Generating practice..." : "Practice weak concepts"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {focus ? (
+            <>
+              <Button onClick={() => handlePractice(focus.id)} disabled={practicing} className="w-fit">
+                {practicing ? "Generating practice..." : `Practice ${focus.name}`}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => handlePractice()}
+                disabled={practicing}
+                className="w-fit px-0"
+              >
+                Or practice your weakest concepts
+              </Button>
+            </>
+          ) : (
+            <Button onClick={() => handlePractice()} disabled={practicing} className="w-fit">
+              {practicing ? "Generating practice..." : "Practice weak concepts"}
+            </Button>
+          )}
+        </div>
       )}
 
       {showPractice && practiceQuestions && (

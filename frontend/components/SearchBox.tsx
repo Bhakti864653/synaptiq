@@ -72,7 +72,8 @@ export default function SearchBox() {
         value={query}
         onChange={(e) => handleQueryChange(e.target.value)}
         onFocus={() => query.trim() && setOpen(true)}
-        placeholder="Search materials or concepts..."
+        placeholder="Search..."
+        aria-label="Search materials or concepts"
         className="w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink placeholder:text-ink-muted outline-none transition-colors focus:border-brand"
       />
       {open && (

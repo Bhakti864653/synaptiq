@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/authFetch";
+import { fetchConceptGuide } from "@/lib/conceptGuide";
 import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Button from "@/components/Button";
@@ -96,15 +97,7 @@ export default function TopicBody({
     setLoadingGuide(true);
     setError(null);
     try {
-      const res = await authFetch(
-        `/documents/${documentId}/concepts/${concept.id}/guide`,
-        { method: "POST" },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.detail || `Failed (${res.status})`);
-      }
-      setGuide(await res.json());
+      setGuide(await fetchConceptGuide(documentId, concept.id));
       router.refresh();
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: loadGuide });

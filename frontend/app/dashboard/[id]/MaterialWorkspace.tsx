@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TopicVisualization from "@/components/visualization/TopicVisualization";
+import { fetchConceptGuide, type ConceptGuide } from "@/lib/conceptGuide";
+import { ConceptFocusProvider } from "@/lib/conceptFocus";
 import { extractKeyIdea } from "@/lib/extractKeyIdea";
 import { recommendedStep, type MaterialStep } from "@/lib/learningJourney";
 import { ConceptMobileSelect, ConceptRail, type RailConcept } from "./ConceptRail";
@@ -16,6 +18,8 @@ export type WorkspaceConcept = RailConcept & {
 type Tab = { id: string; label: string; content: React.ReactNode };
 
 const CIRCLED = ["①", "②", "③", "④", "⑤"];
+// Phone-width names, so the four steps fit on one row.
+const SHORT_LABEL: Record<string, string> = { "study-guide": "Guide", flashcards: "Cards" };
 
 // One material, one path: a step bar (Quiz → Study guide → Practice →
 // Flashcards, with the Tutor always beside it) that shows the chosen step
@@ -60,9 +64,32 @@ export default function MaterialWorkspace({
   );
   const [showVisual, setShowVisual] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  // Explanations written after this page loaded (see lib/conceptGuide.ts).
+  const [guides, setGuides] = useState<Record<string, ConceptGuide | "failed">>({});
 
   const selected = concepts.find((c) => c.id === selectedId) ?? concepts[0];
-  const keyIdea = selected ? extractKeyIdea(selected.summary, selected.excerpt) : null;
+  const fetched = selected ? guides[selected.id] : undefined;
+  const loadedGuide = fetched && fetched !== "failed" ? fetched : null;
+  const summary = selected?.summary ?? loadedGuide?.summary ?? null;
+  const keyIdea = selected ? extractKeyIdea(summary, selected.excerpt ?? loadedGuide?.excerpt ?? null) : null;
+  const needsGuide = !!selected && !selected.summary && !selected.excerpt;
+  const preparingKeyIdea = needsGuide && fetched === undefined;
+  const focus = useMemo(
+    () => (selected ? { id: selected.id, name: selected.name } : null),
+    [selected],
+  );
+
+  // A concept's explanation (and so its key idea) is only written the first
+  // time something asks for it - so ask as soon as it's on screen, instead
+  // of leaving the card empty until the Study guide happens to.
+  useEffect(() => {
+    if (!needsGuide || !selected || guides[selected.id] !== undefined) return;
+    const id = selected.id;
+    fetchConceptGuide(documentId, id).then(
+      (guide) => setGuides((prev) => ({ ...prev, [id]: guide })),
+      () => setGuides((prev) => ({ ...prev, [id]: "failed" })),
+    );
+  }, [documentId, needsGuide, selected, guides]);
   const active = tabs.find((t) => t.id === activeId) ?? steps[0];
 
   const masteryByConceptId = useMemo(
@@ -76,14 +103,14 @@ export default function MaterialWorkspace({
     <div className="syn-workspace flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <nav aria-label="Steps for this material" className="syn-steps">
-          <ol className="flex flex-wrap items-center gap-2">
+          <ol className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2">
             {steps.map((step, i) => {
               const isActive = step.id === active?.id;
               const isNext = step.id === recommendedId;
               return (
-                <li key={step.id} className="flex items-center gap-2">
+                <li key={step.id} className="flex min-w-0 items-center gap-2">
                   {i > 0 && (
-                    <span aria-hidden className="text-ink-muted">
+                    <span aria-hidden className="hidden text-ink-muted sm:inline">
                       &rarr;
                     </span>
                   )}
@@ -93,14 +120,16 @@ export default function MaterialWorkspace({
                     aria-current={isActive ? "step" : undefined}
                     className={`syn-step ${isActive ? "syn-step-active" : ""} ${isNext ? "syn-step-next" : ""}`}
                   >
-                    <span aria-hidden>{CIRCLED[i]}</span> {step.label}
+                    <span aria-hidden>{CIRCLED[i]}</span>{" "}
+                    <span className="sm:hidden" aria-hidden>{SHORT_LABEL[step.id] ?? step.label}</span>
+                    <span className="max-sm:sr-only">{step.label}</span>
                     {isNext && <span className="syn-step-badge">Next</span>}
                   </button>
                 </li>
               );
             })}
             {tutor && (
-              <li className="sm:ml-auto">
+              <li className="col-span-4 sm:ml-auto">
                 <button
                   type="button"
                   onClick={() => setActiveId("tutor")}
@@ -151,6 +180,11 @@ export default function MaterialWorkspace({
                 {selected.mastery === null ? "Not yet attempted" : `${selected.mastery}% mastery`}
               </span>
             </div>
+            {preparingKeyIdea && (
+              <p className="text-sm text-ink-muted" aria-live="polite">
+                Preparing the key idea...
+              </p>
+            )}
             {keyIdea && (
               <p
                 className="max-w-2xl text-lg leading-relaxed text-ink"
@@ -162,7 +196,7 @@ export default function MaterialWorkspace({
               </p>
             )}
             <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
-              {selected.summary && selected.summary.trim() !== keyIdea && (
+              {summary && summary.trim() !== keyIdea && (
                 <button
                   type="button"
                   onClick={() => setShowMore((v) => !v)}
@@ -181,8 +215,8 @@ export default function MaterialWorkspace({
                 {showVisual ? "Hide visual" : "Show visual"}
               </button>
             </div>
-            {showMore && selected.summary && (
-              <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">{selected.summary}</p>
+            {showMore && summary && (
+              <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">{summary}</p>
             )}
             {showVisual && (
               <div className="syn-visual-stage min-w-0">
@@ -206,7 +240,7 @@ export default function MaterialWorkspace({
                 </Link>
               </p>
             )}
-            {active?.content}
+            <ConceptFocusProvider value={focus}>{active?.content}</ConceptFocusProvider>
           </section>
         </div>
       </div>

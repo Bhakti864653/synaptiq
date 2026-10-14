@@ -6,8 +6,9 @@ import { friendlyErrorMessage } from "@/lib/friendlyError";
 import ErrorMessage from "@/components/ErrorMessage";
 import Button from "@/components/Button";
 import Card from "@/components/Card";
+import { useConceptFocus } from "@/lib/conceptFocus";
 
-type CardData = { id: string; front: string; back: string };
+type CardData = { id: string; concept_id?: string | null; front: string; back: string };
 
 export default function Flashcards({ documentId }: { documentId: string }) {
   const [generating, setGenerating] = useState(false);
@@ -16,9 +17,17 @@ export default function Flashcards({ documentId }: { documentId: string }) {
     null,
   );
   const [dueCards, setDueCards] = useState<CardData[] | null>(null);
-  const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  // On the material page, review the picked concept's cards (when it has
+  // any due), with a way to review every due card instead.
+  const focus = useConceptFocus();
+  const [allCardsFor, setAllCardsFor] = useState<string | null>(null);
+  const focusCards = focus && dueCards ? dueCards.filter((c) => c.concept_id === focus.id) : [];
+  const narrowed =
+    !!focus && !!dueCards && focusCards.length > 0 && focusCards.length < dueCards.length &&
+    allCardsFor !== focus.id;
+  const shownCards = narrowed ? focusCards : dueCards;
 
   async function handleGenerate() {
     setGenerating(true);
@@ -50,7 +59,6 @@ export default function Flashcards({ documentId }: { documentId: string }) {
       }
       const result = await res.json();
       setDueCards(result.cards);
-      setIndex(0);
       setRevealed(false);
     } catch (e) {
       setError({ message: friendlyErrorMessage(e), retry: handleLoadDue });
@@ -60,8 +68,8 @@ export default function Flashcards({ documentId }: { documentId: string }) {
   }
 
   async function handleReview(quality: "again" | "good" | "easy") {
-    if (!dueCards) return;
-    const card = dueCards[index];
+    if (!shownCards) return;
+    const card = shownCards[0];
     setReviewing(true);
     setError(null);
     try {
@@ -75,7 +83,9 @@ export default function Flashcards({ documentId }: { documentId: string }) {
         throw new Error(body.detail || `Failed (${res.status})`);
       }
       setRevealed(false);
-      setIndex((i) => i + 1);
+      // Reviewed cards leave the due list, so switching between this
+      // concept's cards and all cards never repeats one.
+      setDueCards((prev) => prev?.filter((c) => c.id !== card.id) ?? null);
     } catch (e) {
       setError({
         message: friendlyErrorMessage(e),
@@ -86,7 +96,12 @@ export default function Flashcards({ documentId }: { documentId: string }) {
     }
   }
 
-  const currentCard = dueCards?.[index];
+  const currentCard = shownCards?.[0];
+
+  function switchCards(showAll: boolean) {
+    setAllCardsFor(showAll && focus ? focus.id : null);
+    setRevealed(false);
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -110,9 +125,20 @@ export default function Flashcards({ documentId }: { documentId: string }) {
 
       {dueCards && currentCard && (
         <div className="flex flex-col gap-3">
-          <p className="font-mono text-sm text-ink-muted">
-            Card {index + 1} of {dueCards.length}
-          </p>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className="font-mono text-sm text-ink-muted">
+              {narrowed && focus ? `${focus.name}: ` : ""}{shownCards?.length} card{shownCards?.length === 1 ? "" : "s"} due
+            </p>
+            {focus && focusCards.length > 0 && focusCards.length < dueCards.length && (
+              <button
+                type="button"
+                onClick={() => switchCards(narrowed)}
+                className="text-sm font-medium text-ink-muted hover:text-ink"
+              >
+                {narrowed ? `Review all ${dueCards.length} due cards` : `Only ${focus.name}`}
+              </button>
+            )}
+          </div>
           <Card className="flex min-h-24 items-center justify-center p-6 text-center text-ink">
             {revealed ? currentCard.back : currentCard.front}
           </Card>
@@ -148,7 +174,7 @@ export default function Flashcards({ documentId }: { documentId: string }) {
         </div>
       )}
 
-      {dueCards && !currentCard && (
+      {dueCards && dueCards.length === 0 && (
         <p className="text-sm text-ink-muted">
           No cards due right now — check back later, or generate a fresh set.
         </p>

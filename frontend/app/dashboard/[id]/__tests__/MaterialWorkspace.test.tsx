@@ -2,6 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import MaterialWorkspace from "../MaterialWorkspace";
+import { fetchConceptGuide } from "@/lib/conceptGuide";
+import { useConceptFocus } from "@/lib/conceptFocus";
 
 // The visualization's general/fallback path (KnowledgeConstellation) calls
 // useRouter() to navigate on node selection - not exercised by these
@@ -9,6 +11,18 @@ import MaterialWorkspace from "../MaterialWorkspace";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
+
+// A concept with no explanation yet asks for one; by default that request
+// just stays pending, so it never reaches the network in these tests.
+vi.mock("@/lib/conceptGuide", () => ({
+  fetchConceptGuide: vi.fn(() => new Promise(() => {})),
+}));
+const mockedFetchGuide = vi.mocked(fetchConceptGuide);
+
+function FocusProbe({ step }: { step: string }) {
+  const focus = useConceptFocus();
+  return <div>{step} focused on {focus?.name ?? "nothing"}</div>;
+}
 
 // jsdom doesn't implement scrollIntoView at all - the "Continue practicing"
 // action calls it to bring the tabs into view, which is harmless UX sugar
@@ -248,5 +262,59 @@ describe("MaterialWorkspace", () => {
     );
     // Only the heading/journey/actions should render - no invented summary text.
     expect(screen.getByRole("heading", { name: "Electron Transport Chain" })).toBeInTheDocument();
+  });
+
+  it("focuses the current step on the concept picked in the rail", async () => {
+    const user = userEvent.setup();
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        initialStep="quiz"
+        tabs={[{ id: "quiz", label: "Quiz", content: <FocusProbe step="Quiz" /> }]}
+      />,
+    );
+    expect(screen.getByText("Quiz focused on Krebs Cycle")).toBeInTheDocument();
+
+    const rail = within(screen.getByRole("navigation", { name: "Concepts in this material" }));
+    await user.click(rail.getByRole("button", { name: /Glycolysis/ }));
+    expect(screen.getByText("Quiz focused on Glycolysis")).toBeInTheDocument();
+  });
+
+  it("asks for a missing explanation so the key idea shows on first open", async () => {
+    mockedFetchGuide.mockResolvedValueOnce({
+      summary: "The Krebs cycle oxidises acetyl-CoA in the mitochondria. It releases CO2.",
+      excerpt: "Krebs cycle text",
+    });
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        tabs={tabs}
+      />,
+    );
+    expect(screen.getByText("Preparing the key idea...")).toBeInTheDocument();
+    expect(mockedFetchGuide).toHaveBeenCalledWith("doc-1", "c2");
+    expect(
+      await screen.findByText(
+        (_, el) => (el?.textContent ?? "") === "“The Krebs cycle oxidises acetyl-CoA in the mitochondria.”",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Preparing the key idea...")).not.toBeInTheDocument();
+  });
+
+  it("does not ask again for a concept that already has its explanation", () => {
+    mockedFetchGuide.mockClear();
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={[concepts[0]]}
+        filename="Cell Biology.pdf"
+        tabs={tabs}
+      />,
+    );
+    expect(mockedFetchGuide).not.toHaveBeenCalled();
   });
 });

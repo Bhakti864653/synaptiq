@@ -12,6 +12,7 @@ import Input from "@/components/Input";
 import StudySetup from "./StudySetup";
 import TopicBody from "./TopicBody";
 import DailyPlan from "./DailyPlan";
+import { useConceptFocus } from "@/lib/conceptFocus";
 
 type Concept = {
   id: string;
@@ -162,9 +163,18 @@ export default function StudyGuide({
     }
   }
 
+  // On the material page the picked concept comes first and opens, and
+  // picking another concept opens that one instead.
+  const focus = useConceptFocus();
+  const focusId = focus && concepts.some((c) => c.id === focus.id) ? focus.id : null;
   const [openId, setOpenId] = useState<string | null>(
-    concepts[recommendedUpTo]?.id ?? null,
+    focusId ?? concepts[recommendedUpTo]?.id ?? null,
   );
+  const [seenFocusId, setSeenFocusId] = useState(focusId);
+  if (focusId !== seenFocusId) {
+    setSeenFocusId(focusId);
+    if (focusId) setOpenId(focusId);
+  }
   // Concepts the user chose "Continue anyway" on this session, so they no
   // longer show a review nudge even though their score is still < 80%.
   const [advancedIds, setAdvancedIds] = useState<Set<string>>(new Set());
@@ -182,9 +192,74 @@ export default function StudyGuide({
     );
   }
 
+  function renderTopic(c: Concept, i: number) {
+    const score = masteryByConcept.get(c.id) ?? 0;
+    // score === 0 is ambiguous (never attempted vs. a genuine 0%
+    // attempt), and "never attempted" is by far the common case for a
+    // topic reached out of order - so only nudge review for a topic
+    // that shows real, if partial, evidence of an attempt.
+    const reviewRecommended =
+      i > recommendedUpTo &&
+      score > 0 &&
+      score < PASS_THRESHOLD &&
+      !advancedIds.has(c.id);
+    const isOpen = openId === c.id;
+    const minutes = plan?.minutesByConcept[c.id];
+
+    return (
+      <Card key={c.id} className="flex flex-col gap-3">
+        <button
+          onClick={() => setOpenId(isOpen ? null : c.id)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <span className="text-ink">
+            {i + 1}. {c.name}
+          </span>
+          <span className="flex items-center gap-2 text-xs text-ink-muted">
+            {minutes !== undefined && (
+              <span className="font-mono">{formatMinutes(minutes)}</span>
+            )}
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: masteryColorVar(score) }}
+            />
+            {score}%
+            {reviewRecommended && (
+              <span className="rounded-full bg-weak/10 px-2 py-0.5 font-medium text-weak">
+                Review recommended
+              </span>
+            )}
+          </span>
+        </button>
+
+        {reviewRecommended && !isOpen && (
+          <p className="text-xs text-ink-muted">
+            You scored {score}% here - come back to review anytime.
+          </p>
+        )}
+
+        {isOpen && (
+          <TopicBody
+            documentId={documentId}
+            concept={c}
+            onAdvance={() => {
+              setAdvancedIds((prev) => new Set(prev).add(c.id));
+              const next = concepts[i + 1];
+              if (next) setOpenId(next.id);
+            }}
+          />
+        )}
+      </Card>
+    );
+  }
+
+  const focusIndex = focusId ? concepts.findIndex((c) => c.id === focusId) : -1;
+
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-ink">Study Guide</h2>
+
+      {focusIndex >= 0 && renderTopic(concepts[focusIndex], focusIndex)}
 
       <DailyPlan documentId={documentId} concepts={concepts} mastery={mastery} />
 
@@ -201,66 +276,7 @@ export default function StudyGuide({
         </p>
       )}
 
-      {concepts.map((c, i) => {
-        const score = masteryByConcept.get(c.id) ?? 0;
-        // score === 0 is ambiguous (never attempted vs. a genuine 0%
-        // attempt), and "never attempted" is by far the common case for a
-        // topic reached out of order - so only nudge review for a topic
-        // that shows real, if partial, evidence of an attempt.
-        const reviewRecommended =
-          i > recommendedUpTo &&
-          score > 0 &&
-          score < PASS_THRESHOLD &&
-          !advancedIds.has(c.id);
-        const isOpen = openId === c.id;
-        const minutes = plan?.minutesByConcept[c.id];
-
-        return (
-          <Card key={c.id} className="flex flex-col gap-3">
-            <button
-              onClick={() => setOpenId(isOpen ? null : c.id)}
-              className="flex w-full items-center justify-between gap-3 text-left"
-            >
-              <span className="text-ink">
-                {i + 1}. {c.name}
-              </span>
-              <span className="flex items-center gap-2 text-xs text-ink-muted">
-                {minutes !== undefined && (
-                  <span className="font-mono">{formatMinutes(minutes)}</span>
-                )}
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: masteryColorVar(score) }}
-                />
-                {score}%
-                {reviewRecommended && (
-                  <span className="rounded-full bg-weak/10 px-2 py-0.5 font-medium text-weak">
-                    Review recommended
-                  </span>
-                )}
-              </span>
-            </button>
-
-            {reviewRecommended && !isOpen && (
-              <p className="text-xs text-ink-muted">
-                You scored {score}% here - come back to review anytime.
-              </p>
-            )}
-
-            {isOpen && (
-              <TopicBody
-                documentId={documentId}
-                concept={c}
-                onAdvance={() => {
-                  setAdvancedIds((prev) => new Set(prev).add(c.id));
-                  const next = concepts[i + 1];
-                  if (next) setOpenId(next.id);
-                }}
-              />
-            )}
-          </Card>
-        );
-      })}
+      {concepts.map((c, i) => (c.id === focusId ? null : renderTopic(c, i)))}
     </div>
   );
 }

@@ -349,4 +349,10 @@ body {
 .syn-step-active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 .syn-step-badge { margin-left: 2px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--ink); font-size: 11px; font-weight: 600; }
 .syn-step-active .syn-step-badge { background: color-mix(in srgb, var(--brand-ink) 22%, transparent); color: var(--brand-ink); }
+/* Phones: four equal steps on one row - number, short name, then "Next" - with the Tutor full width below. */
+@media (max-width: 639px) {
+  .syn-steps .syn-step { width: 100%; flex-direction: column; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; border-radius: 12px; font-size: 13px; line-height: 1.2; text-align: center; }
+  .syn-steps .syn-step-badge { margin-left: 0; padding: 0 6px; font-size: 10px; }
+  .syn-steps .syn-step-tutor { min-height: 42px; flex-direction: row; }
+}
 .syn-concept-card { padding: 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }

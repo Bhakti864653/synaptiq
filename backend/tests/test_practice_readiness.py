@@ -228,3 +228,71 @@ def test_per_document_practice_404s_for_unknown_document(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         generate_practice("no-such-doc", user_id="u1")
     assert exc_info.value.status_code == 404
+
+# --- POST /documents/{id}/practice?concept_id= (one concept) -----------------
+
+
+def _focused_fake():
+    return FakeAdminClient(
+        tables={
+            "documents": [{"id": "d1", "user_id": "u1", "status": "quiz_ready"}],
+            "concepts": [
+                {"id": "c-weak", "name": "Bias", "document_id": "d1"},
+                {"id": "c-strong", "name": "Loss", "document_id": "d1"},
+            ],
+            "concept_mastery": [
+                {"concept_id": "c-weak", "mastery_score": 10},
+                {"concept_id": "c-strong", "mastery_score": 95},
+            ],
+            "document_chunks": [
+                {"document_id": "d1", "chunk_index": 0, "content": "material"}
+            ],
+            "quiz_questions": [],
+        }
+    )
+
+
+def _capturing_groq(monkeypatch, concept_name):
+    prompts = []
+
+    class FakeCompletionMessage:
+        content = (
+            '{"questions": [{"concept_name": "%s", '
+            '"question": "q", "options": ["a", "b"], "correct_index": 0}]}'
+            % concept_name
+        )
+
+    class FakeCompletion:
+        choices = [type("Choice", (), {"message": FakeCompletionMessage})()]
+
+    class FakeGroqClient:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    prompts.append(kwargs["messages"][0]["content"])
+                    return FakeCompletion()
+
+    monkeypatch.setattr(quiz, "get_groq_client", lambda: FakeGroqClient())
+    return prompts
+
+
+def test_per_document_practice_can_focus_on_one_concept(monkeypatch):
+    """Focusing on a strong concept practices that concept only, not the
+    weakest ones."""
+    monkeypatch.setattr(quiz, "get_admin_client", _focused_fake)
+    prompts = _capturing_groq(monkeypatch, "Loss")
+
+    result = generate_practice("d1", concept_id="c-strong", user_id="u1")
+
+    assert [q["concept_id"] for q in result["questions"]] == ["c-strong"]
+    assert "Loss" in prompts[0] and "Bias" not in prompts[0].split("---")[0]
+
+
+def test_per_document_practice_404s_for_a_concept_from_elsewhere(monkeypatch):
+    monkeypatch.setattr(quiz, "get_admin_client", _focused_fake)
+    _capturing_groq(monkeypatch, "Loss")
+
+    with pytest.raises(HTTPException) as exc_info:
+        generate_practice("d1", concept_id="not-in-this-doc", user_id="u1")
+    assert exc_info.value.status_code == 404

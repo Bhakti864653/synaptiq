@@ -107,7 +107,7 @@ def get_due_flashcards(
     today = datetime.now(timezone.utc).date().isoformat()
     cards = (
         admin.table("flashcards")
-        .select("id, front, back, next_review_date")
+        .select("id, concept_id, front, back, next_review_date")
         .eq("document_id", document_id)
         .lte("next_review_date", today)
         .order("next_review_date")

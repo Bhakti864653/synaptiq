@@ -63,4 +63,19 @@ describe("Flashcards focused on the picked concept", () => {
     expect(screen.getByText("Why non-linearity?")).toBeInTheDocument();
     expect(mockedAuthFetch).toHaveBeenCalledWith("/flashcards/f2/review", expect.anything());
   });
+
+  it("says so when the picked concept has no due cards, then shows them all", async () => {
+    const user = userEvent.setup();
+    render(
+      <ConceptFocusProvider value={{ id: "c9", name: "Loss" }}>
+        <Flashcards documentId="doc1" />
+      </ConceptFocusProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Review due cards" }));
+    expect(
+      await screen.findByText("No cards due for Loss right now, so here are all your due cards."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("3 cards due")).toBeInTheDocument();
+  });
 });

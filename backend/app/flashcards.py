@@ -19,13 +19,13 @@ router = APIRouter()
 
 FLASHCARD_PROMPT = """You are an expert tutor creating flashcards from a student's own study material.
 
-Read the material below and create 2 to 3 flashcards per distinct concept covered. Each flashcard should have a short "front" (a question or term) and a concise "back" (the answer or definition), using only information from the material.
+Read the material below and create 2 to 3 flashcards for each of these concepts: %s. Each card's "concept_name" must be one of those names, written exactly as given. Each flashcard should have a short "front" (a question or term) and a concise "back" (the answer or definition), using only information from the material.
 
 Respond with ONLY valid JSON in this exact shape, no other text:
 {
   "cards": [
     {
-      "concept_name": "Concept this card belongs to",
+      "concept_name": "One of the concept names above, exactly",
       "front": "Question or term",
       "back": "Answer or definition"
     }
@@ -37,6 +37,10 @@ Study material:
 %s
 ---
 """
+
+
+def _name_key(name: str | None) -> str:
+    return " ".join((name or "").split()).casefold()
 
 
 @router.post("/documents/{document_id}/flashcards/generate")
@@ -57,13 +61,16 @@ def generate_flashcards(
         .data
         or []
     )
-    concept_by_name = {c["name"]: c["id"] for c in concepts}
+    # Match leniently too ("Loss Function" vs "Loss function"), so a card
+    # still gets its concept and the material page can show it per concept.
+    concept_by_name = {_name_key(c["name"]): c["id"] for c in concepts}
+    concept_names = ", ".join(c["name"] for c in concepts) or "the main concepts covered"
 
     client = get_groq_client()
     try:
         completion = client.chat.completions.create(
             model=GROQ_MODEL,
-            messages=[{"role": "user", "content": FLASHCARD_PROMPT % material}],
+            messages=[{"role": "user", "content": FLASHCARD_PROMPT % (concept_names, material)}],
             response_format={"type": "json_object"},
             temperature=0.4,
         )
@@ -83,7 +90,7 @@ def generate_flashcards(
     rows = [
         {
             "document_id": document_id,
-            "concept_id": concept_by_name.get(item.get("concept_name")),
+            "concept_id": concept_by_name.get(_name_key(item.get("concept_name"))),
             "user_id": user_id,
             "front": item["front"],
             "back": item["back"],

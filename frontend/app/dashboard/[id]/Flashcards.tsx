@@ -125,6 +125,11 @@ export default function Flashcards({ documentId }: { documentId: string }) {
 
       {dueCards && currentCard && (
         <div className="flex flex-col gap-3">
+          {focus && focusCards.length === 0 && (
+            <p className="text-sm text-ink-muted">
+              No cards due for {focus.name} right now, so here are all your due cards.
+            </p>
+          )}
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="font-mono text-sm text-ink-muted">
               {narrowed && focus ? `${focus.name}: ` : ""}{shownCards?.length} card{shownCards?.length === 1 ? "" : "s"} due

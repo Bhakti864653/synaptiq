@@ -30,13 +30,19 @@ export default function QuizView({
   concepts,
   questions,
   mastery,
+  mode = "all",
 }: {
   documentId: string;
   status: string;
   concepts: Concept[];
   questions: Question[];
   mastery: Mastery[];
+  // The material page's step bar shows the diagnostic quiz and the
+  // practice session as separate steps; "all" keeps both together.
+  mode?: "all" | "quiz" | "practice";
 }) {
+  const showQuiz = mode !== "practice";
+  const showPractice = mode !== "quiz";
   const router = useRouter();
   const { celebrate } = useMascot();
   const [generating, setGenerating] = useState(false);
@@ -211,7 +217,7 @@ export default function QuizView({
 
   const tutorHint = (
     <p className="text-sm text-ink-muted">
-      Head to the Tutor tab to talk through what you missed.
+      Open the Tutor to talk through what you missed.
     </p>
   );
 
@@ -225,7 +231,7 @@ export default function QuizView({
 
   return (
     <div className="flex flex-col gap-6">
-      {concepts.length > 0 && (
+      {showQuiz && concepts.length > 0 && (
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-ink">Concepts</h2>
           {concepts.map((c) => {
@@ -242,13 +248,13 @@ export default function QuizView({
 
       {status === "processed" && (
         <p className="text-sm text-ink-muted">
-          Head to the Study Guide tab to get started - it&apos;ll set up topics
-          for this material and bring you back here if you want the full
-          diagnostic quiz.
+          {showQuiz
+            ? "Start with the Study guide step - it sets up the topics in this material, then the full quiz unlocks here."
+            : "Practice unlocks once the quiz is set up. Start with the Study guide step."}
         </p>
       )}
 
-      {status === "quiz_ready" && questions.length > 0 && (
+      {showQuiz && status === "quiz_ready" && questions.length > 0 && (
         <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Diagnostic quiz</h2>
           {diagnosticScorePct !== null && (
@@ -293,13 +299,13 @@ export default function QuizView({
         </Card>
       )}
 
-      {status === "quiz_ready" && !practiceQuestions && (
+      {showPractice && status === "quiz_ready" && !practiceQuestions && (
         <Button onClick={handlePractice} disabled={practicing} className="w-fit">
           {practicing ? "Generating practice..." : "Practice weak concepts"}
         </Button>
       )}
 
-      {practiceQuestions && (
+      {showPractice && practiceQuestions && (
         <Card className="flex flex-col gap-6">
           <h2 className="text-lg font-semibold text-ink">Practice session</h2>
           {practiceScorePct !== null && (

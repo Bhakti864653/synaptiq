@@ -27,7 +27,7 @@ export default function NeedsAttentionStrip({
           Needs attention
         </h2>
         {totalCount > items.length && (
-          <Link href="/dashboard/weak-spots" className="text-xs text-ink-muted hover:text-ink">
+          <Link href="/dashboard/practice#weakest" className="text-xs text-ink-muted hover:text-ink">
             See all {totalCount} &rarr;
           </Link>
         )}

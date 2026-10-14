@@ -4,6 +4,8 @@ import { computeCurrentStreak } from "@/lib/streak";
 import Card from "@/components/Card";
 import MasteryBar from "@/components/MasteryBar";
 import AccuracyTrendChart from "@/components/AccuracyTrendChart";
+import KnowledgeConstellation from "@/components/visualization/KnowledgeConstellation";
+import { buildConstellationData } from "@/lib/visualization/buildConstellationData";
 import StreakGreeting from "./StreakGreeting";
 
 export default async function ProgressPage() {
@@ -24,7 +26,7 @@ export default async function ProgressPage() {
 
   const { data: concepts } = await supabase
     .from("concepts")
-    .select("id, document_id, name");
+    .select("id, document_id, name, summary");
 
   const { data: mastery } = await supabase
     .from("concept_mastery")
@@ -54,6 +56,12 @@ export default async function ProgressPage() {
     conceptsByDocument.set(c.document_id, list);
   }
 
+  const constellationData = buildConstellationData({
+    concepts: concepts ?? [],
+    documents: documents ?? [],
+    masteryByConceptId,
+  });
+
   const byDay = new Map<string, { correct: number; total: number }>();
   for (const r of responses ?? []) {
     const day = r.answered_at.slice(0, 10);
@@ -71,12 +79,36 @@ export default async function ProgressPage() {
     <main className="syn-page mx-auto flex w-full max-w-4xl flex-col gap-8 px-5 pb-20 pt-8 sm:px-10">
       <StreakGreeting streak={currentStreak} />
       <header className="syn-inner-header">
-        <span className="syn-eyebrow">Your learning / Progress</span>
-        <h1 className="syn-section-title">Look how far <em>you&apos;ve come.</em></h1>
+        <h1 className="syn-section-title">Progress</h1>
         <p className="syn-lead">
-          How your understanding is trending over time.
+          How your understanding is growing over time.
         </p>
       </header>
+
+      <section aria-labelledby="map-title" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="map-title" className="text-lg font-semibold text-ink">
+              Your knowledge map
+            </h2>
+            <p className="text-sm text-ink-muted">
+              Each point is a concept from your materials. Choose one to study it.
+            </p>
+          </div>
+          <div className="syn-map-legend" aria-label="Map color key">
+            <span title="80% mastery or more"><i style={{ background: "#f2a63f" }} /> Strong</span>
+            <span title="50 to 79% mastery"><i style={{ background: "#ef6a4c" }} /> Growing</span>
+            <span title="Under 50% or not attempted yet"><i style={{ background: "#8b6bff" }} /> Needs work</span>
+          </div>
+        </div>
+        <div className="syn-map-stage">
+          <KnowledgeConstellation
+            data={constellationData}
+            interactiveSelection
+            emptyHint="Once you upload a material, your concepts will appear here."
+          />
+        </div>
+      </section>
 
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between">

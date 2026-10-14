@@ -50,15 +50,15 @@ export default function NotesDrawer({ documentId }: { documentId: string }) {
   }
 
   return (
-    <div className="border-t border-line pt-4">
+    <div>
       <button
         type="button"
         onClick={handleToggle}
         aria-expanded={open}
-        className="flex items-center gap-2 text-sm font-medium text-ink-muted hover:text-ink"
+        className="flex items-center gap-2 rounded-full border border-line px-3 py-1 text-sm font-medium text-ink-muted transition-colors hover:border-brand hover:text-ink"
       >
         <span aria-hidden>{open ? "−" : "+"}</span>
-        Notes
+        My notes
         <span className="text-xs font-normal text-ink-muted">(saved on this device)</span>
       </button>
       {open && value !== null && (

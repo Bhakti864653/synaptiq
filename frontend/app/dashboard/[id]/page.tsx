@@ -15,10 +15,10 @@ export default async function DocumentPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ concept?: string }>;
+  searchParams?: Promise<{ concept?: string; step?: string }>;
 }) {
   const { id } = await params;
-  const { concept: requestedConceptId } = (await searchParams) ?? {};
+  const { concept: requestedConceptId, step: requestedStep } = (await searchParams) ?? {};
   const supabase = await createClient();
 
   const {
@@ -60,12 +60,31 @@ export default async function DocumentPage({
         .in("concept_id", conceptIds)
     : { data: [] };
 
+  // In the order of the one path: Quiz → Study guide → Practice → Flashcards,
+  // with the Tutor alongside. A step that isn't available yet is left out.
+  const ready = document.status === "processed" || document.status === "quiz_ready";
+  const quizReady = document.status === "quiz_ready";
   const tabs = [];
 
-  if (document.status === "processed" || document.status === "quiz_ready") {
+  tabs.push({
+    id: "quiz",
+    label: "Quiz",
+    content: (
+      <QuizView
+        documentId={document.id}
+        status={document.status}
+        concepts={concepts ?? []}
+        questions={questions ?? []}
+        mastery={mastery ?? []}
+        mode="quiz"
+      />
+    ),
+  });
+
+  if (ready) {
     tabs.push({
       id: "study-guide",
-      label: "Study Guide",
+      label: "Study guide",
       content: (
         <StudyGuide
           documentId={document.id}
@@ -78,33 +97,33 @@ export default async function DocumentPage({
     });
   }
 
-  tabs.push({
-    id: "quiz",
-    label: "Quiz",
-    content: (
-      <QuizView
-        documentId={document.id}
-        status={document.status}
-        concepts={concepts ?? []}
-        questions={questions ?? []}
-        mastery={mastery ?? []}
-      />
-    ),
-  });
-
-  if (document.status === "processed" || document.status === "quiz_ready") {
+  if (quizReady) {
     tabs.push({
-      id: "tutor",
-      label: "Tutor",
-      content: <TutorChat documentId={document.id} />,
+      id: "practice",
+      label: "Practice",
+      content: (
+        <QuizView
+          documentId={document.id}
+          status={document.status}
+          concepts={concepts ?? []}
+          questions={questions ?? []}
+          mastery={mastery ?? []}
+          mode="practice"
+        />
+      ),
     });
-  }
-
-  if (document.status === "quiz_ready") {
     tabs.push({
       id: "flashcards",
       label: "Flashcards",
       content: <Flashcards documentId={document.id} />,
+    });
+  }
+
+  if (ready) {
+    tabs.push({
+      id: "tutor",
+      label: "Tutor",
+      content: <TutorChat documentId={document.id} />,
     });
   }
 
@@ -123,9 +142,8 @@ export default async function DocumentPage({
     <main className="syn-page syn-study mx-auto flex w-full max-w-[1500px] flex-col gap-8 px-5 pb-24 pt-8 sm:px-10 lg:px-14">
       <header className="syn-study-header">
         <Link href="/dashboard" className="syn-back-link">
-          <span aria-hidden="true">←</span> Your library
+          <span aria-hidden="true">←</span> Home
         </Link>
-        <span className="syn-eyebrow">Material / Explore & practice</span>
         <h1 className="syn-display syn-study-title">
           {document.filename}
         </h1>
@@ -173,6 +191,8 @@ export default async function DocumentPage({
           documentId={document.id}
           filename={document.filename}
           initialConceptId={requestedConceptId}
+          initialStep={requestedStep}
+          quizReady={quizReady}
           concepts={(concepts ?? []).map((c) => ({
             id: c.id,
             name: c.name,

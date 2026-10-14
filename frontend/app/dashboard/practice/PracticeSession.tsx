@@ -216,7 +216,7 @@ export default function PracticeSession({
           scorePct={scorePct}
           supportHint={
             <p className="text-sm text-ink-muted">
-              Open the document&apos;s Tutor tab to talk through what you missed.
+              Open the material&apos;s Tutor to talk through what you missed.
             </p>
           }
         />

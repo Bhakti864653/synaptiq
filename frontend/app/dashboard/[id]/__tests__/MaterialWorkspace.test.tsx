@@ -68,8 +68,10 @@ const concepts = [
 ];
 
 const tabs = [
-  { id: "study-guide", label: "Study Guide", content: <div>Study Guide content</div> },
   { id: "quiz", label: "Quiz", content: <div>Quiz content</div> },
+  { id: "study-guide", label: "Study guide", content: <div>Study guide content</div> },
+  { id: "practice", label: "Practice", content: <div>Practice content</div> },
+  { id: "flashcards", label: "Flashcards", content: <div>Flashcards content</div> },
   { id: "tutor", label: "Tutor", content: <div>Tutor content</div> },
 ];
 
@@ -153,7 +155,25 @@ describe("MaterialWorkspace", () => {
     expect(glycolysisButton.textContent).toContain("✓");
   });
 
-  it("the dominant practice action switches to the quiz tab and shows its content", async () => {
+  it("shows the suggested step right away, marked Next, from the current concept's real mastery", () => {
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        tabs={tabs}
+      />,
+    );
+    // Krebs Cycle (30%) is the current concept, so the Study guide is next.
+    const steps = within(screen.getByRole("navigation", { name: "Steps for this material" }));
+    const studyGuide = steps.getByRole("button", { name: /Study guide/ });
+    expect(studyGuide).toHaveAttribute("aria-current", "step");
+    expect(studyGuide.textContent).toContain("Next");
+    expect(screen.getByText("Study guide content")).toBeInTheDocument();
+    expect(screen.queryByText("Quiz content")).not.toBeInTheDocument();
+  });
+
+  it("clicking a step shows that step directly", async () => {
     const user = userEvent.setup();
     render(
       <MaterialWorkspace
@@ -163,9 +183,58 @@ describe("MaterialWorkspace", () => {
         tabs={tabs}
       />,
     );
-    expect(screen.queryByText("Quiz content")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /practicing/i }));
-    expect(screen.getByText("Quiz content")).toBeInTheDocument();
+    const steps = within(screen.getByRole("navigation", { name: "Steps for this material" }));
+    await user.click(steps.getByRole("button", { name: /Flashcards/ }));
+    expect(screen.getByText("Flashcards content")).toBeInTheDocument();
+    expect(screen.queryByText("Study guide content")).not.toBeInTheDocument();
+  });
+
+  it("opens the step named in the link (?step=)", () => {
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        initialStep="practice"
+        tabs={tabs}
+      />,
+    );
+    expect(screen.getByText("Practice content")).toBeInTheDocument();
+  });
+
+  it("keeps the Tutor beside the steps, with the general chat clearly labelled", async () => {
+    const user = userEvent.setup();
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        tabs={tabs}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Ask the Tutor" }));
+    expect(screen.getByText("Tutor content")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: (name) => name.startsWith("General questions (not from your notes)"),
+      }),
+    ).toHaveAttribute("href", "/dashboard/ask");
+  });
+
+  it("keeps the visual collapsed until asked for", async () => {
+    const user = userEvent.setup();
+    render(
+      <MaterialWorkspace
+        documentId="doc-1"
+        concepts={concepts}
+        filename="Cell Biology.pdf"
+        tabs={tabs}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: "Show visual" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: "Hide visual" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("never fabricates a key idea when no summary or excerpt exists", () => {

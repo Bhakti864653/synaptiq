@@ -1,10 +1,16 @@
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
-import LogoutButton from "@/app/dashboard/LogoutButton";
+import UserMenu from "./UserMenu";
 import SearchBox from "./SearchBox";
 import { SynaptiqLogo } from "@/components/logo";
 
-export default function TopNav({ showLogout = false }: { showLogout?: boolean }) {
+export default function TopNav({
+  showLogout = false,
+  userName,
+}: {
+  showLogout?: boolean;
+  userName?: string;
+}) {
   return (
     <header className="sticky top-0 z-40 flex items-center gap-4 border-b border-line bg-paper px-6 py-3">
       <Link href={showLogout ? "/dashboard" : "/"} className="shrink-0 text-ink">
@@ -12,8 +18,8 @@ export default function TopNav({ showLogout = false }: { showLogout?: boolean })
       </Link>
       {showLogout && <SearchBox />}
       <div className="ml-auto flex items-center gap-4">
-        {showLogout && <LogoutButton />}
         <ThemeToggle />
+        {showLogout && <UserMenu name={userName || "Account"} />}
       </div>
     </header>
   );

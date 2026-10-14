@@ -19,7 +19,9 @@ export default function MascotCompanion() {
   if (pathname === "/dashboard") return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    // Hidden on phones, where a floating character would cover what you're
+    // reading or the answer buttons.
+    <div className="pointer-events-none fixed bottom-4 right-4 z-40 hidden flex-col items-end gap-2 md:flex">
       {speaking && (
         <div
           className="animate-fade-up max-w-[220px] rounded-2xl rounded-br-sm border border-line bg-surface px-3 py-2 text-sm text-ink shadow-lg"

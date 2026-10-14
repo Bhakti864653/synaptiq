@@ -336,3 +336,17 @@ body {
     radial-gradient(900px circle at 10% -10%, color-mix(in srgb, var(--accent-2) 42%, transparent), transparent 65%),
     var(--paper);
 }
+
+/* Simpler design: a shorter greeting so "Your next step" sits near the top. */
+.syn-greeting-short { padding: 22px 0 26px; }
+.syn-greeting-short .syn-display { font-size: clamp(2.2rem, 4.2vw, 3.6rem); }
+
+/* Material page step bar: one row of plain steps, the current one filled, the suggested one marked "Next". */
+.syn-step { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-muted); font-size: 14px; font-weight: 500; transition: border-color .2s, color .2s, background-color .2s; }
+.syn-step:hover { color: var(--ink); border-color: var(--brand); }
+.syn-step:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.syn-step-next { border-color: var(--brand); color: var(--ink); }
+.syn-step-active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.syn-step-badge { margin-left: 2px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--ink); font-size: 11px; font-weight: 600; }
+.syn-step-active .syn-step-badge { background: color-mix(in srgb, var(--brand-ink) 22%, transparent); color: var(--brand-ink); }
+.syn-concept-card { padding: 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }

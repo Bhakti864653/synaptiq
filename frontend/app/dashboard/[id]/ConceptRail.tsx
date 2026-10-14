@@ -33,7 +33,7 @@ export function ConceptRail({
   return (
     <nav aria-label="Concepts in this material" className="hidden xl:block">
       <ul className="syn-rail-list">
-        {concepts.map((concept, index) => {
+        {concepts.map((concept) => {
           const status = statusFor(concept, currentId);
           const selected = concept.id === selectedId;
           return (
@@ -46,7 +46,6 @@ export function ConceptRail({
                   selected ? "syn-rail-active text-ink" : "text-ink-muted hover:text-ink"
                 }`}
               >
-                <span className="syn-rail-number">{String(index + 1).padStart(2, "0")}</span>
                 <span
                   aria-hidden
                   className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -92,7 +91,7 @@ export function ConceptMobileSelect({
   return (
     <label className="flex flex-col gap-1 xl:hidden">
       <span className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
-        Jump to concept
+        Concept
       </span>
       <select
         value={selectedId}

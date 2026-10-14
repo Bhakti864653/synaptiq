@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import Button from "@/components/Button";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import TopicVisualization from "@/components/visualization/TopicVisualization";
 import { extractKeyIdea } from "@/lib/extractKeyIdea";
+import { recommendedStep, type MaterialStep } from "@/lib/learningJourney";
 import { ConceptMobileSelect, ConceptRail, type RailConcept } from "./ConceptRail";
-import LearningJourneyBar from "./LearningJourneyBar";
-import DocumentTabs from "./DocumentTabs";
 import NotesDrawer from "./NotesDrawer";
 
 export type WorkspaceConcept = RailConcept & {
@@ -16,16 +15,26 @@ export type WorkspaceConcept = RailConcept & {
 
 type Tab = { id: string; label: string; content: React.ReactNode };
 
+const CIRCLED = ["①", "②", "③", "④", "⑤"];
+
+// One material, one path: a step bar (Quiz → Study guide → Practice →
+// Flashcards, with the Tutor always beside it) that shows the chosen step
+// right here, with the concept list beside it. The step to highlight comes
+// from the current concept's real mastery (lib/learningJourney.ts).
 export default function MaterialWorkspace({
   documentId,
   filename,
   initialConceptId,
+  initialStep,
+  quizReady = true,
   concepts,
   tabs,
 }: {
   documentId: string;
   filename: string;
   initialConceptId?: string;
+  initialStep?: string;
+  quizReady?: boolean;
   concepts: WorkspaceConcept[];
   tabs: Tab[];
 }) {
@@ -34,36 +43,81 @@ export default function MaterialWorkspace({
     return (notMastered ?? concepts[0])?.id ?? null;
   }, [concepts]);
 
+  const steps = tabs.filter((t) => t.id !== "tutor");
+  const tutor = tabs.find((t) => t.id === "tutor");
+  const current = concepts.find((c) => c.id === currentId) ?? null;
+  const allMastered = concepts.length > 0 && concepts.every((c) => (c.mastery ?? 0) >= 80);
+  const suggested: MaterialStep = allMastered
+    ? "flashcards"
+    : recommendedStep({ quizReady, mastery: current?.mastery ?? null });
+  const recommendedId = steps.some((s) => s.id === suggested) ? suggested : steps[0]?.id;
+
   const [selectedId, setSelectedId] = useState(() =>
     concepts.some((c) => c.id === initialConceptId) ? initialConceptId : currentId ?? concepts[0]?.id,
   );
-  const [activeTabId, setActiveTabId] = useState<string | undefined>(undefined);
-  const tabsRef = useRef<HTMLDivElement>(null);
+  const [activeId, setActiveId] = useState(() =>
+    tabs.some((t) => t.id === initialStep) ? initialStep! : recommendedId,
+  );
+  const [showVisual, setShowVisual] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   const selected = concepts.find((c) => c.id === selectedId) ?? concepts[0];
   const keyIdea = selected ? extractKeyIdea(selected.summary, selected.excerpt) : null;
-  const hasTutorTab = tabs.some((t) => t.id === "tutor");
+  const active = tabs.find((t) => t.id === activeId) ?? steps[0];
 
   const masteryByConceptId = useMemo(
     () => new Map(concepts.map((c) => [c.id, c.mastery] as const).filter((e): e is [string, number] => e[1] !== null)),
     [concepts],
   );
 
-  function goToTab(id: string) {
-    setActiveTabId(id);
-    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   if (!selected) return null;
 
   return (
-    <div className="syn-workspace flex flex-col gap-12">
-      {/* The concept rail stays narrow, while the explanation and live
-          visualization share the remaining room. At smaller widths these
-          follow the same reading order in one column. */}
-      <div className="grid grid-cols-1 gap-y-8 xl:grid-cols-[210px_minmax(0,1fr)] xl:items-start xl:gap-x-10">
-        <div className="syn-concept-sidebar min-w-0 xl:sticky xl:top-20">
-          <div className="syn-eyebrow hidden xl:block">Concept index / {concepts.length}</div>
+    <div className="syn-workspace flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <nav aria-label="Steps for this material" className="syn-steps">
+          <ol className="flex flex-wrap items-center gap-2">
+            {steps.map((step, i) => {
+              const isActive = step.id === active?.id;
+              const isNext = step.id === recommendedId;
+              return (
+                <li key={step.id} className="flex items-center gap-2">
+                  {i > 0 && (
+                    <span aria-hidden className="text-ink-muted">
+                      &rarr;
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveId(step.id)}
+                    aria-current={isActive ? "step" : undefined}
+                    className={`syn-step ${isActive ? "syn-step-active" : ""} ${isNext ? "syn-step-next" : ""}`}
+                  >
+                    <span aria-hidden>{CIRCLED[i]}</span> {step.label}
+                    {isNext && <span className="syn-step-badge">Next</span>}
+                  </button>
+                </li>
+              );
+            })}
+            {tutor && (
+              <li className="sm:ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveId("tutor")}
+                  aria-current={active?.id === "tutor" ? "step" : undefined}
+                  className={`syn-step syn-step-tutor ${active?.id === "tutor" ? "syn-step-active" : ""}`}
+                >
+                  Ask the Tutor
+                </button>
+              </li>
+            )}
+          </ol>
+        </nav>
+        <NotesDrawer documentId={documentId} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-y-6 xl:grid-cols-[210px_minmax(0,1fr)] xl:items-start xl:gap-x-10">
+        <div className="min-w-0 xl:sticky xl:top-20">
           <ConceptRail
             concepts={concepts}
             currentId={currentId}
@@ -72,7 +126,7 @@ export default function MaterialWorkspace({
           />
         </div>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-6">
           <ConceptMobileSelect
             concepts={concepts}
             currentId={currentId}
@@ -80,17 +134,26 @@ export default function MaterialWorkspace({
             onSelect={setSelectedId}
           />
 
-          <div className="syn-concept-stage mt-6 grid min-w-0 grid-cols-1 xl:mt-0 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-center">
-          {/* The selected concept remains the reading focus. Switching it
-              updates the existing live visualization beside it. */}
-          <section key={selected.id} className="syn-concept-copy flex min-w-0 animate-fade-up flex-col gap-4">
-            <span className="syn-eyebrow">The idea / {String(concepts.findIndex((c) => c.id === selected.id) + 1).padStart(2, "0")}</span>
-            <h2 className="syn-concept-title">
-              {selected.name}
-            </h2>
+          {/* The concept in focus, kept short so the step itself is right below. */}
+          <section key={selected.id} className="syn-concept-card flex min-w-0 animate-fade-up flex-col gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <h2 className="syn-concept-title">{selected.name}</h2>
+              <span className="flex items-center gap-2 pt-1 text-xs text-ink-muted">
+                <span
+                  aria-hidden
+                  className="h-2 w-2 rounded-full"
+                  style={{
+                    backgroundColor:
+                      selected.mastery === null ? "var(--line)" : "var(--mastered)",
+                    opacity: selected.mastery === null ? 1 : Math.max(0.35, selected.mastery / 100),
+                  }}
+                />
+                {selected.mastery === null ? "Not yet attempted" : `${selected.mastery}% mastery`}
+              </span>
+            </div>
             {keyIdea && (
               <p
-                className="max-w-xl text-xl leading-relaxed text-ink"
+                className="max-w-2xl text-lg leading-relaxed text-ink"
                 style={{ fontFamily: "var(--font-fraunces)", fontStyle: "italic" }}
               >
                 {"“"}
@@ -98,63 +161,54 @@ export default function MaterialWorkspace({
                 {"”"}
               </p>
             )}
-            {selected.summary && selected.summary.trim() !== keyIdea && (
-              <p className="max-w-xl text-sm leading-relaxed text-ink-muted">{selected.summary}</p>
-            )}
-
-            <div className="flex items-center gap-3 text-xs text-ink-muted">
-              <span
-                aria-hidden
-                className="h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor:
-                    selected.mastery === null ? "var(--line)" : "var(--mastered)",
-                  opacity: selected.mastery === null ? 1 : Math.max(0.35, selected.mastery / 100),
-                }}
-              />
-              {selected.mastery === null ? "Not yet attempted" : `${selected.mastery}% mastery`}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Button variant="primary" onClick={() => goToTab("quiz")}>
-                {(selected.mastery ?? 0) > 0 ? "Continue practicing" : "Start practicing"}
-              </Button>
-              {hasTutorTab && (
+            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+              {selected.summary && selected.summary.trim() !== keyIdea && (
                 <button
                   type="button"
-                  onClick={() => goToTab("tutor")}
-                  className="text-sm font-medium text-ink-muted hover:text-ink"
+                  onClick={() => setShowMore((v) => !v)}
+                  aria-expanded={showMore}
+                  className="w-fit text-sm font-medium text-ink-muted hover:text-ink"
                 >
-                  Ask Synaptiq about this &rarr;
+                  {showMore ? "Less about this concept" : "More about this concept"}
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => setShowVisual((v) => !v)}
+                aria-expanded={showVisual}
+                className="w-fit text-sm font-medium text-ink-muted hover:text-ink"
+              >
+                {showVisual ? "Hide visual" : "Show visual"}
+              </button>
             </div>
-
-            {/* Quiet and secondary on purpose - see LearningJourneyBar. */}
-            <LearningJourneyBar mastery={selected.mastery} />
+            {showMore && selected.summary && (
+              <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">{selected.summary}</p>
+            )}
+            {showVisual && (
+              <div className="syn-visual-stage min-w-0">
+                <TopicVisualization
+                  documentId={documentId}
+                  filename={filename}
+                  concepts={concepts}
+                  masteryByConceptId={masteryByConceptId}
+                  selectedConceptId={selected.id}
+                />
+              </div>
+            )}
           </section>
 
-          <div className="syn-visual-stage min-w-0">
-            <TopicVisualization
-              documentId={documentId}
-              filename={filename}
-              concepts={concepts}
-              masteryByConceptId={masteryByConceptId}
-              selectedConceptId={selected.id}
-            />
-          </div>
-          </div>
+          <section aria-label={active?.label} key={active?.id} className="animate-fade-up">
+            {active?.id === "tutor" && (
+              <p className="mb-4 text-sm text-ink-muted">
+                The Tutor answers only from this material.{" "}
+                <Link href="/dashboard/ask" className="font-medium text-ink underline-offset-2 hover:underline">
+                  General questions (not from your notes) &rarr;
+                </Link>
+              </p>
+            )}
+            {active?.content}
+          </section>
         </div>
-      </div>
-
-      <div className="syn-practice-section flex flex-col gap-8">
-        <div ref={tabsRef}>
-          <span className="syn-eyebrow">02 / Make it stick</span>
-          <h2 className="syn-section-title mb-6">Practice <em>& review.</em></h2>
-          <DocumentTabs tabs={tabs} activeId={activeTabId} onActiveChange={setActiveTabId} />
-        </div>
-
-        <NotesDrawer documentId={documentId} />
       </div>
     </div>
   );

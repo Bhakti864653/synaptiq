@@ -295,6 +295,7 @@ WEAK_CONCEPT_LIMIT = 3
 @router.post("/documents/{document_id}/practice")
 def generate_practice(
     document_id: str,
+    concept_id: str | None = None,
     user_id: str = Depends(rate_limit("practice", 15, 3600)),
 ):
     admin = get_admin_client()
@@ -328,8 +329,13 @@ def generate_practice(
     )
     mastery_by_concept = {m["concept_id"]: m["mastery_score"] for m in mastery_rows}
 
+    # The material page can focus practice on one concept (?concept_id=);
+    # otherwise practice the weakest few, as before.
+    focused = [c for c in concepts if c["id"] == concept_id]
+    if concept_id and not focused:
+        raise HTTPException(status_code=404, detail="Concept not found")
     ranked = sorted(concepts, key=lambda c: mastery_by_concept.get(c["id"], 0))
-    weak_concepts = ranked[:WEAK_CONCEPT_LIMIT]
+    weak_concepts = focused or ranked[:WEAK_CONCEPT_LIMIT]
     concept_by_name = {c["name"]: c for c in weak_concepts}
 
     material = _get_material(admin, document_id)
